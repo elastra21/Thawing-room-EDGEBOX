@@ -1,20 +1,26 @@
+/* 
+################### EDGEBOX Instructions ###################
+### https://github.com/espressif/arduino-esp32/pull/7771 ###
+############################################################
+*/
+
 #include <SPI.h>
 #include <Wire.h>
 #include "WIFI.h"
 #include "RTClib.h"
 #include "config.h"
-#include "Screen.h"
 #include <PID_v1.h>
 #include <OneWire.h>
-#include <M5Tough.h>
 #include <WiFiUdp.h>
 #include "secrets.h"
 #include "MqttClient.h"
+#include <Adafruit_ADS1X15.h>
 #include <DallasTemperature.h>
 #include <NTPClient_Generic.h>
 
-RTC_DateTypeDef RTC_DateStruct;  // Data
-RTC_TimeTypeDef RTC_TimeStruct;  // Time
+
+RTC_PCF8523 rtc;
+Adafruit_ADS1015 analog_inputs;
 
 data_rtc N_rtc;  // structure data_rtc from the config file is renamed N_rtc
 data_st1 N_st1;  // fan (F1) STAGE 1 on and off time
@@ -110,19 +116,18 @@ uint32_t turn_off_pid_timer = 0UL;     // stage 2 PID OFF
 uint32_t address_sending_timer = 0UL;  // Address Sending
 uint32_t A_B_timer = 0UL;              // Stage ON/OFF and A&B PUBLISH
 
-float TC1 = 0, TC1_F = 0;  //Ta
-float TC2 = 0, TC2_F = 0;  //Ts
-float TC3 = 0, TC3_F = 0;  //Tc
-float TC4 = 0, TC4_F = 0;  //optionely
+float TA = 0, TA_F = 0;  //Ta
+float TS = 0, TS_F = 0;  //Ts
+float TC = 0, TC_F = 0;  //Tc
+float TI = 0, TI_F = 0;  //Ti optional
 
 float buffer[BUFFER_SIZE] = {};  // buffer to store the values
 uint8_t buffer_len = 0;
-uint8_t bufferIndex = 0;  // buffer index
+uint8_t buffer_index = 0;  // buffer index
 float buffer_sum = 0;     // variable to store the buffer_sum of the received values
-float AvgTC2 = 0.0;       // average surface temperature
+float avg_ts = 0.0;       // average surface temperature
 
 WIFI wifi;
-Screen screen;
 WiFiUDP ntpUDP;
 MqttClient mqtt;
 
@@ -143,26 +148,23 @@ String addressToString(uint8_t *address);
 void callback(char *topic, byte *payload, unsigned int len);  //callback function for mqtt, see definition after loop
 
 void setup() {
-  M5.begin();
   Wire.begin();
-  M5.Lcd.setRotation(3);
-  screen.printLabels();
+  analog_inputs.begin();
 
   setStage(0);
-  screen.updateIndicators(0, 0, 0);
 
-  pinMode(Q0_0, OUTPUT);
-  pinMode(Q0_1, OUTPUT);
-  pinMode(Q0_2, OUTPUT);
-  pinMode(Q0_3, OUTPUT);
-  pinMode(Q0_4, OUTPUT);
+  pinMode(STAGE_1_IO, OUTPUT);
+  pinMode(STAGE_2_IO, OUTPUT);
+  pinMode(STAGE_3_IO, OUTPUT);
+  pinMode(VALVE_IO, OUTPUT);
+  pinMode(FAN_IO, OUTPUT);
 
   ledcSetup(AIR_PWM, FREQ, RESOLUTION);
   ledcAttachPin(AIR_PIN, AIR_PWM);
 
-  pinMode(I0_10, INPUT);
-  // pinMode(I0_11, INPUT);
-  pinMode(I0_12, INPUT);
+  pinMode(STOP_IO, INPUT);
+  pinMode(DLY_S_IO, INPUT);
+  pinMode(START_IO, INPUT);
 
   wifi.setUpWiFi();
   setUpRTC();
@@ -175,41 +177,43 @@ void setup() {
   air_in_feed_PID.SetSampleTime(3000);
   //Adjust PID values
   air_in_feed_PID.SetTunings(Kp, Ki, Kd);
-  sensors1.setResolution(ADDRESS_TC1, TEMPERATURE_PRECISION);
-  sensors1.setResolution(ADDRESS_TC2, TEMPERATURE_PRECISION);
-  sensors1.setResolution(ADDRESS_TC3, TEMPERATURE_PRECISION);
-  sensors1.setResolution(ADDRESS_TC4, TEMPERATURE_PRECISION);
+  sensors1.setResolution(ADDRESS_TA, TEMPERATURE_PRECISION);
+  sensors1.setResolution(ADDRESS_TS, TEMPERATURE_PRECISION);
+  sensors1.setResolution(ADDRESS_TC, TEMPERATURE_PRECISION);
+  sensors1.setResolution(ADDRESS_TI, TEMPERATURE_PRECISION);
   delay(750);
 }
 
 void loop() {
+  DateTime now = rtc.now();
+
   mqtt.loop();
 
   updateTemperature();
 
   // if (N_chooseTs == 1) TC2 = analogRead(A0);                                // Condition to choose if Ts is a IR sensor or OneWire sensor
 
-  if ((TC1) > (LOW_TEMP_LIMIT) && (TC1) < (HIGH_TEMP_LIMIT)) TC1_F = TC1;  // if the temperature over the limit it will not be considered
+  if ((TA) > (LOW_TEMP_LIMIT) && (TA) < (HIGH_TEMP_LIMIT)) TA_F = TA;  // if the temperature over the limit it will not be considered
 
-  if ((TC2) > (LOW_TEMP_LIMIT) && (TC2) < (HIGH_TEMP_LIMIT)) TC2_F = TC2;
+  if ((TS) > (LOW_TEMP_LIMIT) && (TS) < (HIGH_TEMP_LIMIT)) TS_F = TS;
 
-  if ((TC3) > (LOW_TEMP_LIMIT) && (TC3) < (HIGH_TEMP_LIMIT)) TC3_F = TC3;
+  if ((TC) > (LOW_TEMP_LIMIT) && (TC) < (HIGH_TEMP_LIMIT)) TC_F = TC;
 
-  if ((TC4) > (LOW_TEMP_LIMIT) && (TC4) < (HIGH_TEMP_LIMIT)) TC4_F = TC4;
+  if ((TI) > (LOW_TEMP_LIMIT) && (TI) < (HIGH_TEMP_LIMIT)) TI_F = TI;
 
   if ((millis() - address_sending_timer >= 10000)) {
 
-    String S_add1 = addressToString(ADDRESS_TC1);
-    mqtt.publishData("mduino/sendadd1", S_add1);
+    String ta_string_address = addressToString(ADDRESS_TA);
+    mqtt.publishData("mduino/sendadd1", ta_string_address);
 
-    String S_add2 = addressToString(ADDRESS_TC2);
-    mqtt.publishData("mduino/sendadd2", S_add2);
+    String ts_string_address = addressToString(ADDRESS_TS);
+    mqtt.publishData("mduino/sendadd2", ts_string_address);
 
-    String S_add3 = addressToString(ADDRESS_TC3);
-    mqtt.publishData("mduino/sendadd3", S_add3);
+    String tc_string_address = addressToString(ADDRESS_TC);
+    mqtt.publishData("mduino/sendadd3", tc_string_address);
 
-    String S_add4 = addressToString(ADDRESS_TC4);
-    mqtt.publishData("mduino/sendadd4", S_add4);
+    String ti_string_address = addressToString(ADDRESS_TI);
+    mqtt.publishData("mduino/sendadd4", ti_string_address);
 
     address_sending_timer = millis();
   }
@@ -217,41 +221,41 @@ void loop() {
   //---- Get surface temperature average with a FIFO buffer ---- //////////////////////////////// Something fuckin' wrong with the average
   if (millis() - ts_avg_timer >= AVG_RESOLUTION) {
     const bool full_buffer = !(buffer_len < BUFFER_SIZE);
-    const uint8_t index = full_buffer ? bufferIndex : buffer_len;
+    const uint8_t index = full_buffer ? buffer_index : buffer_len;
 
-    buffer_sum += TC2_F;
-    buffer[index] = TC2_F;
+    buffer_sum += TS_F;
+    buffer[index] = TS_F;
 
     if (full_buffer) {
       buffer_sum -= buffer[index];
-      bufferIndex = (index + 1) % BUFFER_SIZE;
+      buffer_index = (index + 1) % BUFFER_SIZE;
     } else buffer_len++;
 
-    AvgTC2 = buffer_sum / buffer_len;
+    avg_ts = buffer_sum / buffer_len;
 
-    mqtt.publishData(AVG_TS, temp_data.AvgTs_N);
+    mqtt.publishData(AVG_TS_TOPIC, temp_data.AvgTs_N);
     Serial.println("Temp data published");
     ts_avg_timer = millis();
   }
 
   //---- Temperature MQTT publish ----///////////////////////////////////////////////////////////
   if (millis() - get_temp_timer >= TIME_ACQ_DELAY) {
-    temp_data.Ta_N = TC1_F;
-    temp_data.Ts_N = TC2_F;
-    temp_data.Tc_N = TC3_F;
-    temp_data.Ti_N = TC4_F;
-    temp_data.AvgTs_N = AvgTC2;
+    temp_data.Ta_N = TA_F;
+    temp_data.Ts_N = TS_F;
+    temp_data.Tc_N = TC_F;
+    temp_data.Ti_N = TI_F;
+    temp_data.AvgTs_N = avg_ts;
 
-    mqtt.publishData(TA, temp_data.Ta_N);
-    mqtt.publishData(TS, temp_data.Ts_N);
-    mqtt.publishData(TC, temp_data.Tc_N);
-    mqtt.publishData(TI, temp_data.Ti_N);
+    mqtt.publishData(TA_TOPIC, temp_data.Ta_N);
+    mqtt.publishData(TS_TOPIC, temp_data.Ts_N);
+    mqtt.publishData(TC_TOPIC, temp_data.Tc_N);
+    mqtt.publishData(TI_TOPIC, temp_data.Ti_N);
 
     // for debug purpose
     Serial.println("Average: " + String(temp_data.AvgTs_N));
-    Serial.println("Ts: " + String(TC2));
-    Serial.println("TC: " + String(TC3));
-    Serial.println("Ta: " + String(TC1));
+    Serial.println("Ts: " + String(TS));
+    Serial.println("TC: " + String(TC));
+    Serial.println("Ta: " + String(TA));
     Serial.println("Nstart: " + String(N_start));
     Serial.println("Nstop: " + String(N_stop));
     Serial.println("A variable: " + String(N_SP.N_A));
@@ -263,10 +267,10 @@ void loop() {
     Serial.println("setpoint: " + String(setpoint_data.PID_setpoint));
 
     Serial.println("time: ");
-    Serial.print(String(RTC_TimeStruct.Hours) + "h ");
-    Serial.println(String(RTC_TimeStruct.Minutes) + "min ");
-    Serial.print(String(RTC_DateStruct.Date) + "day ");
-    Serial.println(String(RTC_DateStruct.Month) + "month");
+    Serial.print(String(now.hour()) + "h ");
+    Serial.println(String(now.minute()) + "min ");
+    Serial.print(String(now.day()) + "day ");
+    Serial.println(String(now.month()) + "month");
     Serial.println("stage 2 time: ");
     Serial.print(String(Stage2_hour) + "h ");
     Serial.print(String(Stage2_minute) + "min ");
@@ -317,7 +321,7 @@ void loop() {
 
   //---- START, DELAYED, STOP Button pressed ----////////////////////////////////////////////////
   // delayed start push button or digital button pressed
-  if (/*digitalRead(I0_11) == 1 ||*/ N_d_start == 1) {
+  if (digitalRead(DLY_S_IO) == 1 || N_d_start == 1) {
     START1 = 1;
     Serial.println("Delayed Start Pressed");
     N_d_start = 0;
@@ -332,7 +336,7 @@ void loop() {
   }
 
   // start push button or digital button pressed
-  if (digitalRead(I0_12) == 1 || N_start == 1) {
+  if (digitalRead(START_IO) == 1 || N_start == 1) {
     START2 = 1;
     Serial.println("Start Pressed");
     N_start = 0;
@@ -347,7 +351,7 @@ void loop() {
   }
 
   // stop push button or digital button pressed
-  if (digitalRead(I0_10) == 1 || N_stop == 1) {
+  if (digitalRead(STOP_IO) == 1 || N_stop == 1) {
     STOP = 1;
     Serial.println("Stop Pressed");
     N_stop = 0;
@@ -357,18 +361,18 @@ void loop() {
   if (STOP == 1) stopRoutine();
   //---- RTC Timer ----//////////////////////////////////////////////////////////////////////////
 
-  if (((((RTC_TimeStruct.Hours >= Stage2_hour && RTC_TimeStruct.Minutes >= Stage2_minute
-          && RTC_DateStruct.Date >= Stage2_day && RTC_DateStruct.Month >= Stage2_month)
+  if (((((now.hour() >= Stage2_hour && now.minute() >= Stage2_minute
+          && now.day() >= Stage2_day && now.month() >= Stage2_month)
          && START1 == 1)
         || START2 == 1)
        && Stage2_started == 0 && Stage2_RTC_set == 0)) {
 
     START1 = MTR_State = C1_state = 0;
-    digitalWrite(Q0_0, LOW);
-    digitalWrite(Q0_1, LOW);
-    digitalWrite(Q0_2, LOW);
-    digitalWrite(Q0_3, LOW);
-    digitalWrite(Q0_4, LOW);
+    digitalWrite(STAGE_1_IO, LOW);
+    digitalWrite(STAGE_2_IO, LOW);
+    digitalWrite(STAGE_3_IO, LOW);
+    digitalWrite(VALVE_IO, LOW);
+    digitalWrite(FAN_IO, LOW);
 
     F1_data.M_F1 = 2;
     S1_data.M_S1 = 2;
@@ -387,7 +391,7 @@ void loop() {
   //---- STAGE 1 ----////////////////////////////////////////////////////////////////////////////
   if (START1 == 1 && Stage2_RTC_set == 0 && STOP == 0) {
     if (C1_state == 0) {
-      digitalWrite(Q0_0, HIGH);  // Turn On the LED of Stage 1
+      digitalWrite(STAGE_1_IO, HIGH);  // Turn On the LED of Stage 1
       C1_state = 1;              // State of Stage 1 turned ON
       Serial.println("Stage 1 Started");
       setStage(1);
@@ -397,8 +401,8 @@ void loop() {
 
     // Turn ON F1
 
-    if (MTR_State == 0 && (HIGH != digitalRead(Q0_4)) && (millis() - F1_timer >= (N_st1.N_f1_st1_offtime * MINS))) {  // MTR_State is the motor of F1
-      digitalWrite(Q0_4, HIGH);                                                                                       // Turn ON F1
+    if (MTR_State == 0 && (HIGH != digitalRead(FAN_IO)) && (millis() - F1_timer >= (N_st1.N_f1_st1_offtime * MINS))) {  // MTR_State is the motor of F1
+      digitalWrite(FAN_IO, HIGH);                                                                                       // Turn ON F1
       Serial.println("Stage 1 F1 On");
       MTR_State = 1;
       F1_data.M_F1 = 1;  // When M_F1 = 1 ==> ON
@@ -409,8 +413,8 @@ void loop() {
     }
 
     // Turn OFF F1 when the time set in the configuration is over
-    if (MTR_State == 1 && (LOW != digitalRead(Q0_4)) && (millis() - F1_timer >= (N_st1.N_f1_st1_ontime * MINS))) {
-      digitalWrite(Q0_4, LOW);
+    if (MTR_State == 1 && (LOW != digitalRead(FAN_IO)) && (millis() - F1_timer >= (N_st1.N_f1_st1_ontime * MINS))) {
+      digitalWrite(FAN_IO, LOW);
       // ledcWrite(AIR_PWM, 0);
       Serial.println("Stage 1 F1 Off");
       MTR_State = 0;
@@ -425,7 +429,7 @@ void loop() {
   //---- STAGE 2 ----////////////////////////////////////////////////////////////////////////////
   if (Stage2_RTC_set == 1 && Stage3_started == 0 && STOP == 0) {
     if (C2_state == 0) {
-      digitalWrite(Q0_1, HIGH);  // Turn On the LED of Stage 2
+      digitalWrite(STAGE_2_IO, HIGH);  // Turn On the LED of Stage 2
 
       C2_state = 1;
       Serial.println("Stage 2 Started");
@@ -437,7 +441,7 @@ void loop() {
 
     // Turn ON F1 when time is over
     if (MTR_State == 0 && (millis() - F1_stg_2_timmer >= (N_st2.N_f1_st2_offtime * MINS))) {
-      digitalWrite(Q0_4, HIGH);  // Output of F1
+      digitalWrite(FAN_IO, HIGH);  // Output of F1
       Serial.println("Stage 2 F1 On");
       MTR_State = 1;
       F1_data.M_F1 = 1;  // When M_F1 = 1 ==> ON
@@ -449,7 +453,7 @@ void loop() {
 
     // Turn OFF F1 when time is over
     if (MTR_State == 1 && (millis() - F1_stg_2_timmer >= (N_st2.N_f1_st2_ontime * MINS))) {
-      digitalWrite(Q0_4, LOW);
+      digitalWrite(FAN_IO, LOW);
       Serial.println("Stage 2 F1 Off");
       MTR_State = 0;
       F1_data.M_F1 = 2;  // When M_F1 = 2 ==> OFF
@@ -461,7 +465,7 @@ void loop() {
 
     // Turn ON S1 when time is over
     if ((MTR_State == 1) && (S1_state == 0) && (millis() - S1_stg_2_timer >= (N_st2.N_s1_st2_offtime * MINS))) {
-      digitalWrite(Q0_3, HIGH);  // Output of S1
+      digitalWrite(VALVE_IO, HIGH);  // Output of S1
       S1_state = 1;
       Serial.println("Stage 2 S1 ON");
       S1_data.M_S1 = 1;  // When M_S1 = 1 ==> ON
@@ -473,7 +477,7 @@ void loop() {
 
     // Turn OFF S1 when time is over
     if ((S1_state == 1 && (millis() - S1_stg_2_timer >= (N_st2.N_s1_st2_ontime * MINS))) || (MTR_State == 0)) {
-      digitalWrite(Q0_3, LOW);  // Output of S1
+      digitalWrite(VALVE_IO, LOW);  // Output of S1
       S1_state = 0;
       Serial.println("Stage 2 S1 OFF");
       S1_data.M_S1 = 2;  // When M_S1 = 2 ==> OFF
@@ -497,7 +501,7 @@ void loop() {
 
     // Activate the PID when F1 ON
     if (MTR_State == 1 && (millis() - turn_on_pid_timer >= 3000)) {
-      PIDinput = TC1_F;
+      PIDinput = TA_F;
       coefOutput = (coefPID * Output) / 100;  // Transform the Output of the PID to the desired max value
       Serial.println(coefOutput);
       air_in_feed_PID.Compute();
@@ -524,17 +528,17 @@ void loop() {
 
   //---- STAGE 3 ----////////////////////////////////////////////////////////////////////////////
   // Initialisation Stage3 (reset all the other stages to 0)
-  if (TC2_F >= N_tset.N_ts_set && TC3_F >= N_tset.N_tc_set && Stage3_started == 0 && Stage2_started == 1) {
+  if (TS_F >= N_tset.N_ts_set && TC_F >= N_tset.N_tc_set && Stage3_started == 0 && Stage2_started == 1) {
     START1 = START2 = Stage2_RTC_set = MTR_State = 0;
 
     // Turn All Output OFF
     ledcWrite(AIR_PWM, 0);
     // analogWrite(A0_5, 0);
-    digitalWrite(Q0_0, LOW);
-    digitalWrite(Q0_1, LOW);
-    digitalWrite(Q0_2, LOW);
-    digitalWrite(Q0_3, LOW);
-    digitalWrite(Q0_4, LOW);
+    digitalWrite(STAGE_1_IO, LOW);
+    digitalWrite(STAGE_2_IO, LOW);
+    digitalWrite(STAGE_3_IO, LOW);
+    digitalWrite(VALVE_IO, LOW);
+    digitalWrite(FAN_IO, LOW);
     Output = 0;
     coefOutput = 0;
 
@@ -557,7 +561,7 @@ void loop() {
   if (Stage3_started == 1 && Stage2_started == 1 && STOP == 0) {
     // State of Stage 3 turned to 1
     if (C3_state == 0) {
-      digitalWrite(Q0_2, HIGH);  // Turn ON the LED of Stage 3
+      digitalWrite(STAGE_3_IO, HIGH);  // Turn ON the LED of Stage 3
 
       C3_state = 1;
       Serial.println("Stage 3 Started");
@@ -568,7 +572,7 @@ void loop() {
 
     // Turn ON F1 when time is over
     if (MTR_State == 0 && (millis() - F1_stg_3_timer >= (N_st3.N_f1_st3_offtime * MINS))) {
-      digitalWrite(Q0_4, HIGH);
+      digitalWrite(FAN_IO, HIGH);
       // ledcWrite(AIR_PWM, duty_cycle);
       Serial.println("Stage 3 F1 On");
       MTR_State = 1;
@@ -581,7 +585,7 @@ void loop() {
 
     // Turn OFF F1 when time is over
     if (MTR_State == 1 && (millis() - F1_stg_3_timer >= (N_st3.N_f1_st3_ontime * MINS))) {
-      digitalWrite(Q0_4, LOW);
+      digitalWrite(FAN_IO, LOW);
       // ledcWrite(AIR_PWM, 0);
       Serial.println("Stage 3 F1 Off");
       MTR_State = 0;
@@ -593,7 +597,7 @@ void loop() {
     }
 
     if (S1_state == 0 && (millis() - S1_stg_3_timer >= (N_st3.N_s1_st3_offtime * MINS))) {
-      digitalWrite(Q0_3, HIGH);
+      digitalWrite(VALVE_IO, HIGH);
       S1_state = 1;
       Serial.println("Stage 3 S1 ON");
       S1_data.M_S1 = 1;
@@ -604,7 +608,7 @@ void loop() {
     }
 
     if (S1_state == 1 && (millis() - S1_stg_3_timer >= (N_st3.N_s1_st3_ontime * MINS))) {
-      digitalWrite(Q0_3, LOW);
+      digitalWrite(VALVE_IO, LOW);
       S1_state = 0;
       Serial.println("Stage 3 S1 OFF with value of S1 ");
       S1_data.M_S1 = 2;
@@ -869,11 +873,11 @@ void callback(char *topic, byte *payload, unsigned int len) {
 void stopRoutine() {
   if (stop_temp1 == 0) {
     Serial.println("PROCESS STOP INITIATED");
-    digitalWrite(Q0_0, LOW);
-    digitalWrite(Q0_1, LOW);
-    digitalWrite(Q0_2, LOW);
-    digitalWrite(Q0_3, LOW);
-    digitalWrite(Q0_4, LOW);
+    digitalWrite(STAGE_1_IO, LOW);
+    digitalWrite(STAGE_2_IO, LOW);
+    digitalWrite(STAGE_3_IO, LOW);
+    digitalWrite(VALVE_IO, LOW);
+    digitalWrite(FAN_IO, LOW);
     ledcWrite(AIR_PWM, 0);
     // analogWrite(A0_5, 0);
 
@@ -902,38 +906,31 @@ void stopRoutine() {
 }
 
 void setUpRTC() {
-  timeClient.begin();
-  timeClient.setTimeOffset(3600 * TIME_ZONE_OFFSET_HRS);
-  timeClient.setUpdateInterval(SECS_IN_HR);
-  timeClient.update();
-  while (!timeClient.updated()) {
-    timeClient.update();
-    delay(500);
+  if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    while (1)
+      ;
   }
-  RTC_DateStruct.Year = timeClient.getYear();
-  RTC_DateStruct.Month = timeClient.getMonth();
-  RTC_DateStruct.Date = timeClient.getDay();
-  M5.Rtc.SetDate(&RTC_DateStruct);
-  RTC_TimeStruct.Hours = timeClient.getHours();
-  RTC_TimeStruct.Minutes = timeClient.getMinutes();
-  RTC_TimeStruct.Seconds = timeClient.getSeconds();
-  M5.Rtc.SetTime(&RTC_TimeStruct);
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 }
 
 void updateTemperature() {
-  M5.Rtc.GetTime(&RTC_TimeStruct);
-  M5.Rtc.GetDate(&RTC_DateStruct);
-
-  sensors1.requestTemperatures();
+  DateTime now = rtc.now();
   sensors1.requestTemperatures();
 
-  TC1 = sensors1.getTempC(ADDRESS_TC1);  //PV /Ta
+  uint16_t TA_analog = analog_inputs.readADC_SingleEnded(TA_AI);  // Ta
+  TA = (TA_analog - 0) * (50 + 50) / (1024 - 0) - 50;
+  uint16_t TS_analog = analog_inputs.readADC_SingleEnded(TS_AI);  // Ts
+  TS = (TS_analog - 0) * (50 + 50) / (1024 - 0) - 50;
+  uint16_t TC_analog = analog_inputs.readADC_SingleEnded(TC_AI);  // Tc
+  TC = (TC_analog - 0) * (50 + 50) / (1024 - 0) - 50;
+  TI = sensors1.getTempC(ADDRESS_TI);  // Ti
+
+  // TC1 = sensors1.getTempC(ADDRESS_TC1);  //PV /Ta
   // TC2 = N_chooseTs ? getIRTemp() : sensors1.getTempC(ADDRESS_TC2);// Ts  // Condition to choose if Ts is a IR sensor or OneWire sensor
-  TC2 = true ? getIRTemp() : sensors1.getTempC(ADDRESS_TC2);  // Ts  // Condition to choose if Ts is a IR sensor or OneWire sensor
-  TC3 = sensors1.getTempC(ADDRESS_TC3);                       // Tc
-  TC4 = sensors1.getTempC(ADDRESS_TC4);                       // Ti
-
-  screen.updateTemperatures(TC1, TC2, TC3, TC4);
+  // TC2 = true ? getIRTemp() : sensors1.getTempC(ADDRESS_TC2);  // Ts  // Condition to choose if Ts is a IR sensor or OneWire sensor
+  // TC3 = sensors1.getTempC(ADDRESS_TC3);                       // Tc
+  // TC4 = sensors1.getTempC(ADDRESS_TC4);                       // Ti
 }
 
 String addressToString(uint8_t *address) {
@@ -948,17 +945,16 @@ String addressToString(uint8_t *address) {
 void setStage(int Stage) {
   // if (stage_data.stage == Stage) return;
   stage_data.stage = Stage;
-  screen.updateStage(Stage);
   mqtt.publishData(STAGE, Stage);
 }
 
 float getIRTemp() {
   uint16_t result;
   float temperature;
-  Wire.beginTransmission(SENSOR_ADDRESS);
+  Wire.beginTransmission(IR_SENSOR_ADDRESS);
   Wire.write(READ_TEMPERATURE);
   Wire.endTransmission(false);
-  Wire.requestFrom(SENSOR_ADDRESS, 2);
+  Wire.requestFrom(IR_SENSOR_ADDRESS, 2);
   result = Wire.read();
   result |= Wire.read() << 8;
 
