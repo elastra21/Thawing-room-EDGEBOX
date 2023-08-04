@@ -23,8 +23,17 @@ static void handle_update_progress_cb(AsyncWebServerRequest *request, String fil
   }
 }
 
+/* Message callback of WebSerial */
+static void recvMsg(uint8_t *data, size_t len){
+  WebSerial.println("Received Data...");
+  String d = "";
+  for(int i=0; i < len; i++){
+    d += char(data[i]);
+  }
+  WebSerial.println(d);
+}
 
-void WIFI::setUpWebServer(){
+void WIFI::setUpWebServer(bool brigeSerial){
   if(!SPIFFS.begin(true)){
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
@@ -86,7 +95,11 @@ void WIFI::setUpWebServer(){
     //   }
     // }
     handle_update_progress_cb);
-  server.begin();
+    if (brigeSerial) {
+      WebSerial.begin(&server);
+      WebSerial.onMessage(recvMsg);
+    }
+    server.begin();
 }
 
 void WIFI::setUpWiFi(){

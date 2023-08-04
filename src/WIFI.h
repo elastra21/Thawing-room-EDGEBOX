@@ -6,15 +6,17 @@
 #include <Update.h>
 #include "secrets.h"
 #include <ESPmDNS.h>
+#include <AsyncTCP.h>
 // #include <WiFiUdp.h>
 #include <WiFiMulti.h>
 #include <WiFiClient.h>
 #include <ArduinoOTA.h>
+#include <WebSerialLite.h>
 #include "ESPAsyncWebServer.h"
 
 class WIFI {
   public:
-    void setUpWebServer();
+    void setUpWebServer(bool brigeSerial = false);
     void localIP();
     void loopOTA();
     void setUpOTA();

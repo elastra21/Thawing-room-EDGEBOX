@@ -1,5 +1,6 @@
-#include "MqttClient.h"
+#include "WiFi.h"
 #include "secrets.h"
+#include "MqttClient.h"
 
 WiFiClient esp32Client;
 PubSubClient mqttClient(esp32Client);
@@ -9,11 +10,11 @@ PubSubClient mqttClient(esp32Client);
 void MqttClient::connect() {
   mqttClient.setServer(IP_ADDRESS, PORT);
   if (mqttClient.connect(USERNAME)) {
-    Serial.println("Connection has been established, well done");
+    WebSerial.println("Connection has been established, well done");
     subscribeRoutine();
     no_service_available = false;
   } else {
-    Serial.println("Looks like the server connection failed...");
+    WebSerial.println("Looks like the server connection failed...");
   }
 }
 
@@ -23,14 +24,14 @@ bool MqttClient::isServiceAvailable() {
 
 void MqttClient::reconnect() {
   while (!mqttClient.connected()) {
-    Serial.print("Attempting MQTT connection...");
+    WebSerial.print("Attempting MQTT connection...");
     if (mqttClient.connect(USERNAME)) {
-      Serial.println("connected");
+      WebSerial.println("connected");
       subscribeRoutine();
     } else {
-      Serial.print("failed, rc=");
-      Serial.print(mqttClient.state());
-      Serial.println(" try again in 5 seconds");
+      WebSerial.print("failed, rc=");
+      WebSerial.print(mqttClient.state());
+      WebSerial.println(" try again in 5 seconds");
       delay(5000);
     }
   }
@@ -54,14 +55,14 @@ void MqttClient::setCallback(std::function<void(char *, uint8_t *, unsigned int)
 
 void MqttClient::subscribeRoutine() {
   if (mqttClient.connect(USERNAME)) {
-    Serial.println("connected, subscribing");
-    if (!mqttClient.subscribe(sub_hours, 1)) Serial.println("sub hours failed !");
-    if (!mqttClient.subscribe(sub_minutes, 1)) Serial.println("sub hours failed !");
-    if (!mqttClient.subscribe(sub_day, 1)) Serial.println("sub hours failed !");
-    if (!mqttClient.subscribe(sub_month, 1)) Serial.println("sub hours failed !");
-    if (!mqttClient.subscribe(sub_f1_st1_ontime, 1)) Serial.println("sub hours failed !");
-    if (!mqttClient.subscribe(sub_f1_st1_offtime, 1)) Serial.println("sub hours failed !");
-    if (!mqttClient.subscribe(sub_f1_st2_ontime, 1)) Serial.println("sub hours failed !");
+    WebSerial.println("connected, subscribing");
+    if (!mqttClient.subscribe(sub_hours, 1)) WebSerial.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_minutes, 1)) WebSerial.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_day, 1)) WebSerial.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_month, 1)) WebSerial.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_f1_st1_ontime, 1)) WebSerial.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_f1_st1_offtime, 1)) WebSerial.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_f1_st2_ontime, 1)) WebSerial.println("sub hours failed !");
     mqttClient.subscribe(sub_f1_st2_offtime, 1);
     mqttClient.subscribe(sub_s1_st2_ontime, 1);
     mqttClient.subscribe(sub_s1_st2_offtime, 1);
@@ -70,7 +71,7 @@ void MqttClient::subscribeRoutine() {
     mqttClient.subscribe(sub_s1_st3_ontime, 1);
     mqttClient.subscribe(sub_s1_st3_offtime, 1);
     mqttClient.subscribe(sub_A, 1);
-    if (!mqttClient.subscribe(sub_B, 1)) Serial.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_B, 1)) WebSerial.println("sub hours failed !");
     mqttClient.subscribe(sub_P, 1);
     mqttClient.subscribe(sub_I, 1);
     mqttClient.subscribe(sub_D, 1);
@@ -88,8 +89,8 @@ void MqttClient::subscribeRoutine() {
     // mqttClient.subscribe(sub_address2, 1);
     // mqttClient.subscribe(sub_address3, 1);
     // mqttClient.subscribe(sub_address4, 1);
-    Serial.println("subscribing done");
-  } else Serial.println("not connected, subscribing aborted");
+    WebSerial.println("subscribing done");
+  } else WebSerial.println("not connected, subscribing aborted");
 }
 
 void MqttClient::publishData(String topic, double value) {
