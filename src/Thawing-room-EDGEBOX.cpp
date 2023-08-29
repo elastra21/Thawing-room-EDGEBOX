@@ -152,6 +152,25 @@ void callback(char *topic, byte *payload, unsigned int len);  //callback functio
 void setup() {
   // WebSerial.begin(115200);
 
+  N_st1.N_f1_st1_ontime = 1;
+  N_st1.N_f1_st1_offtime = 40;
+
+  N_st2.N_f1_st2_ontime = 30;
+  N_st2.N_f1_st2_offtime = 10;
+  N_st2.N_s1_st2_ontime = 1;
+  N_st2.N_s1_st2_offtime = 5;
+
+  N_st3.N_f1_st3_ontime = 10;
+  N_st3.N_f1_st3_offtime = 30;
+  N_st3.N_s1_st3_ontime = 1;
+  N_st3.N_s1_st3_offtime = 15;
+
+  N_tset.N_ts_set = 40;
+  N_tset.N_tc_set = 40;
+
+  N_SP.N_A = 0.5;
+  N_SP.N_B = 20; 
+
   Wire.begin();
   analog_inputs.begin();
 
@@ -192,6 +211,11 @@ void setup() {
 
 void loop() {
   DateTime now = rtc.now();
+
+  Stage2_hour = 18;
+  Stage2_minute = 0;
+  Stage2_day = now.day();
+  Stage2_month = now.month();
 
   if (!wifi.isConnected()) {
     wifi.reconnect();
