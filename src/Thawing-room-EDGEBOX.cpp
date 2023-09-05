@@ -144,6 +144,7 @@ float getIRTemp();
 void stopRoutine();
 void updateTemperature();
 void setStage(int Stage);
+void setUpDefaultParameters();
 String addressToString(uint8_t *address);
 int responseToInt(byte *value, size_t len);
 float responseToFloat(byte *value, size_t len);
@@ -152,21 +153,7 @@ void callback(char *topic, byte *payload, unsigned int len);  //callback functio
 void setup() {
   // WebSerial.begin(115200);
 
-  N_st1.N_f1_st1_ontime = 1;
-  N_st1.N_f1_st1_offtime = 40;
-
-  N_st2.N_f1_st2_ontime = 30;
-  N_st2.N_f1_st2_offtime = 10;
-  N_st2.N_s1_st2_ontime = 1;
-  N_st2.N_s1_st2_offtime = 5;
-
-  N_st3.N_f1_st3_ontime = 10;
-  N_st3.N_f1_st3_offtime = 30;
-  N_st3.N_s1_st3_ontime = 1;
-  N_st3.N_s1_st3_offtime = 15;
-
-  N_tset.N_ts_set = 40;
-  N_tset.N_tc_set = 40;
+  setUpDefaultParameters();
 
   N_SP.N_A = 0.5;
   N_SP.N_B = 20; 
@@ -1012,4 +999,24 @@ float getIRTemp() {
 
   temperature = result * 0.02 - 273.15;
   return temperature;
+}
+
+
+void setUpDefaultParameters(){
+  // Default parameters
+  N_st1.N_f1_st1_ontime = 1;
+  N_st1.N_f1_st1_offtime = 40;
+
+  N_st2.N_f1_st2_ontime = 30;
+  N_st2.N_f1_st2_offtime = 10;
+  N_st2.N_s1_st2_ontime = 1;
+  N_st2.N_s1_st2_offtime = 5;
+
+  N_st3.N_f1_st3_ontime = 10;
+  N_st3.N_f1_st3_offtime = 30;
+  N_st3.N_s1_st3_ontime = 1;
+  N_st3.N_s1_st3_offtime = 15;
+
+  N_tset.N_ts_set = 40;
+  N_tset.N_tc_set = 40;
 }
