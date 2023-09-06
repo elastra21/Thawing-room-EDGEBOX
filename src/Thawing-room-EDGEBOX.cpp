@@ -949,7 +949,7 @@ void updateTemperature() {
   TA = (TA_analog - 2708) * (50 + 20) / (13284 - 2708) - 20;
 
   float TS_analog = analog_inputs.readADC_SingleEnded(TS_AI);  // Ts
-  TS = ((TS_analog - 2708) * (50 + 20) / (13284 - 2708) - 20)*1.8;
+  TS = (TS_analog*1.5 - 2708) * (50 + 20) / (13284 - 2708) - 20;
 
   float TC_analog = analog_inputs.readADC_SingleEnded(TC_AI);  // Tc
   TC = (TC_analog - 2708) * (50 + 20) / (13284 - 2708) - 20;
