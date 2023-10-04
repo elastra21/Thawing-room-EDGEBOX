@@ -10,7 +10,7 @@
 #define LOW_TEMP_LIMIT -40
 
 // setting PWM properties
-#define AIR_PWM     27   
+#define AIR_PWM     0 // IT WAS 27 NO MAMES EMMANUEL LA CHINGASTE AQUI HAHA 
 #define FREQ        5000 
 #define AIR_PIN     AO0  
 #define RESOLUTION  8    
@@ -22,7 +22,7 @@
 #define VALVE_IO    DO_3   
 #define FAN_IO      DO_4   
 
-#define A0_5  27                            
+// #define A0_5  27                            
 
 // #define STOP_IO     DI_0    
 // #define DLY_S_IO    DI_1    
