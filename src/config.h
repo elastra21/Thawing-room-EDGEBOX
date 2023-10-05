@@ -2,17 +2,19 @@
 #include "EdgeBox-ESP-100.h"
 #include <DallasTemperature.h>
 
-// #define TIME_ZONE_OFFSET_HRS            (-7)  /* Ensenada, México */
-#define TIME_ZONE_OFFSET_HRS            (+8)   /* Taiping, Malaysia */
+
+#define SECS_IN_HR 3600
+#define TIME_ZONE_OFFSET_HRS            (-7)  /* Ensenada, México */
+// #define TIME_ZONE_OFFSET_HRS            (+8)   /* Taiping, Malaysia */
 
 // temperature acquisition filter 
 #define HIGH_TEMP_LIMIT 60
 #define LOW_TEMP_LIMIT -40
 
 // setting PWM properties
-#define AIR_PWM     0 // IT WAS 27 NO MAMES EMMANUEL LA CHINGASTE AQUI HAHA 
+#define AIR_PWM     0       // Sí me mamé pero aún así es sólo el canal no el pin
 #define FREQ        5000 
-#define AIR_PIN     AO0  
+#define AIR_PIN     AO0     // Este es el pin que va tener controlando el PWM
 #define RESOLUTION  8    
 
 //------------ IO's    -------------------------------------------------------------------->
