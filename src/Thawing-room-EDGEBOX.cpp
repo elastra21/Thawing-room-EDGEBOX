@@ -279,8 +279,10 @@ void loop() {
     mqtt.publishData(TI_TOPIC, temp_data.Ti_N);
 
     // for debug purpose
+    WebSerial.println("Stage 1 : " + String(C1_state));
+    WebSerial.println("Stage 2 : " + String(C2_state));
+    WebSerial.println("Stage 3 : " + String(C3_state));
     WebSerial.println("Average: " + String(temp_data.AvgTs_N));
-    WebSerial.println(digitalRead(DI0));
     WebSerial.println("Ts: " + String(TS));
     WebSerial.println("TC: " + String(TC));
     WebSerial.println("Ta: " + String(TA));
@@ -293,7 +295,6 @@ void loop() {
     WebSerial.println("D variable: " + String(Kd));
     WebSerial.println("setpoint raw: " + String(Setpoint));
     WebSerial.println("setpoint: " + String(setpoint_data.PID_setpoint));
-
     WebSerial.println("time: ");
     WebSerial.print(String(now.hour()) + "h ");
     WebSerial.println(String(now.minute()) + "min ");
