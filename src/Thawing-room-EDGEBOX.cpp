@@ -202,11 +202,6 @@ void setup() {
 void loop() {
   DateTime now = rtc.now();
 
-  Stage2_hour = 18;
-  Stage2_minute = 0;
-  Stage2_day = now.day();
-  Stage2_month = now.month();
-
   if (!wifi.isConnected()) {
     wifi.reconnect();
     delay(500);
