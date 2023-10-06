@@ -16,10 +16,10 @@
 #include <WiFiUdp.h>
 #include "secrets.h"
 #include <Arduino.h>
+#include <NTPClient.h>
 #include "MqttClient.h"
 #include <Adafruit_ADS1X15.h>
 #include <DallasTemperature.h>
-// #include <Adafruit_Sensor.h>
 
 data_rtc N_rtc;  // structure data_rtc from the config file is renamed N_rtc
 data_st1 N_st1;  // fan (F1) STAGE 1 on and off time
@@ -129,9 +129,12 @@ uint8_t buffer_len = 0;
 uint8_t buffer_index = 0;  // buffer index
 
 WIFI wifi;
+WiFiUDP ntpUDP;
 MqttClient mqtt;
 RTC_PCF8563 rtc;
 Adafruit_ADS1115 analog_inputs;
+
+NTPClient timeClient(ntpUDP);
 
 PID air_in_feed_PID(&PIDinput, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);  // DIRECT or REVERSE
 
@@ -940,7 +943,23 @@ void setUpRTC() {
     WebSerial.println("Couldn't find RTC");
     while (1);
   }
-  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+
+  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));  // This piece of shit doen't get the actual datetime, it gets the compilation datetime, so it always be the same
+
+  timeClient.begin();
+  timeClient.setTimeOffset(SECS_IN_HR * TIME_ZONE_OFFSET_HRS);
+  timeClient.setUpdateInterval(SECS_IN_HR);
+  timeClient.update();
+
+  delay(1000); 
+
+  long epochTime = timeClient.getEpochTime();
+
+  // Convert received time from Epoch format to DateTime format
+  DateTime ntpTime(epochTime);
+
+  // Adjust RTC
+  rtc.adjust(ntpTime);
 }
 
 void updateTemperature() {

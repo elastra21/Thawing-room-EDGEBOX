@@ -2,6 +2,7 @@
 #include "EdgeBox-ESP-100.h"
 #include <DallasTemperature.h>
 
+#define SECS_IN_HR 3600
 // #define TIME_ZONE_OFFSET_HRS            (-7)  /* Ensenada, México */
 #define TIME_ZONE_OFFSET_HRS            (+8)   /* Taiping, Malaysia */
 
