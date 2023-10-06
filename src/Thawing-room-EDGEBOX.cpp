@@ -946,20 +946,25 @@ void setUpRTC() {
 
   // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));  // This piece of shit doen't get the actual datetime, it gets the compilation datetime, so it always be the same
 
-  timeClient.begin();
-  timeClient.setTimeOffset(SECS_IN_HR * TIME_ZONE_OFFSET_HRS);
-  timeClient.setUpdateInterval(SECS_IN_HR);
-  timeClient.update();
+  DateTime now = rtc.now();
+  if (now.year() <= 2000) {
+    Serial.println("RTC time seems invalid. Adjusting to NTP time.");
+    
+    timeClient.begin();
+    timeClient.setTimeOffset(SECS_IN_HR * TIME_ZONE_OFFSET_HRS);
+    timeClient.setUpdateInterval(SECS_IN_HR);
+    timeClient.update();
 
-  delay(1000); 
+    delay(1000); 
 
-  long epochTime = timeClient.getEpochTime();
+    long epochTime = timeClient.getEpochTime();
 
-  // Convert received time from Epoch format to DateTime format
-  DateTime ntpTime(epochTime);
+    // Convert received time from Epoch format to DateTime format
+    DateTime ntpTime(epochTime);
 
-  // Adjust RTC
-  rtc.adjust(ntpTime);
+    // Adjust RTC
+    rtc.adjust(ntpTime);
+  }
 }
 
 void updateTemperature() {
