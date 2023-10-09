@@ -58,6 +58,8 @@
 #define ACK_S1_ST3_OFFTIME  "mduino/ack_s1_st3_offtime"
 #define ACK_A               "mduino/ack_A"
 #define ACK_B               "mduino/ack_B"
+#define ACK_TS              "mduino/ack_Ts"
+#define ACK_TC              "mduino/ack_Tc"
 
 
 
