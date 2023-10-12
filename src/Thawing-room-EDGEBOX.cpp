@@ -158,9 +158,6 @@ void setup() {
 
   setUpDefaultParameters();
 
-  N_SP.N_A = 0.5;
-  N_SP.N_B = 20; 
-
   Wire.begin();
   analog_inputs.begin();
 
@@ -330,8 +327,8 @@ void loop() {
     mqtt.publishData(ACK_B, N_SP.N_B);
 
     // Ts & Tc
-    mqtt.publishData(ACK_A, N_SP.N_A);
-    mqtt.publishData(ACK_B, N_SP.N_B);
+    mqtt.publishData(ACK_TS, N_tset.N_ts_set);
+    mqtt.publishData(ACK_TC, N_tset.N_tc_set);
 
     A_B_timer = millis();
   }
@@ -1045,6 +1042,9 @@ void setUpDefaultParameters(){
   N_st3.N_s1_st3_ontime = 1;
   N_st3.N_s1_st3_offtime = 15;
 
-  N_tset.N_ts_set = 40;
-  N_tset.N_tc_set = 40;
+  N_SP.N_A = 0.5;
+  N_SP.N_B = 20;
+
+  N_tset.N_ts_set = 4;
+  N_tset.N_tc_set = 2;
 }
