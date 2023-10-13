@@ -42,7 +42,7 @@ void WIFI::setUpWebServer(bool brigeSerial){
 
 
   /*use mdns for host name resolution*/
-  if (!MDNS.begin("esp32")){ // http://esp32.local
+  if (!MDNS.begin(HOST_NAME)){ // http://esp32.local
     Serial.println("Error setting up MDNS responder!");
     while (1){
       delay(1000);
