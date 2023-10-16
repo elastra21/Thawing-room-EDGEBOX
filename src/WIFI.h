@@ -11,7 +11,12 @@
 #include <WiFiMulti.h>
 #include <WiFiClient.h>
 #include <ArduinoOTA.h>
-// #include "WebSerialLite.h"
+#ifdef WebSerial
+  // No incluir WebSerialLite.h
+#else
+  #include "WebSerialLite.h"
+#endif
+
 #include "ESPAsyncWebServer.h"
 
 class WIFI {

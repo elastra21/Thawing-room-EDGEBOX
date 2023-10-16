@@ -74,8 +74,12 @@ void WIFI::setUpWebServer(bool brigeSerial){
   }, handle_update_progress_cb);
   
   if (brigeSerial) {
-    // WebSerial.begin(&server);
-    // WebSerial.onMessage(recvMsg);
+    #ifdef WebSerial_h // Verifica si WebSerialLite.h está incluido
+
+    WebSerial.begin(&server);
+    WebSerial.onMessage(recvMsg);
+
+    #endif // WebSerialLite_h
   }
   server.begin();
 }
@@ -89,7 +93,7 @@ void WIFI::setUpWiFi(){
     Serial.println("Wifi connecting...");
       
     notConnectedCounter++;
-    if(notConnectedCounter > 1) { // Reset board if not connected after 5s
+    if(notConnectedCounter > 7) { // Reset board if not connected after 5s
       Serial.println("Resetting due to Wifi not connecting...");
       const uint8_t num_of_tries = EEPROM.readInt(1);
       if (num_of_tries == 3) break;          

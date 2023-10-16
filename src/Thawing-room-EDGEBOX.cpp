@@ -154,7 +154,9 @@ float responseToFloat(byte *value, size_t len);
 void callback(char *topic, byte *payload, unsigned int len);  //callback function for mqtt, see definition after loop
 
 void setup() {
-  WebSerial.begin(115200);
+  #ifdef WebSerial
+    WebSerial.begin(115200);
+  #endif
 
   setUpDefaultParameters();
 
@@ -182,7 +184,7 @@ void setup() {
   wifi.setUpWiFi();
   WebSerial.println("Pasó aquí");
   wifi.setUpOTA();
-  wifi.setUpWebServer(false);
+  wifi.setUpWebServer(true);
   setUpRTC();
 
 
