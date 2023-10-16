@@ -154,7 +154,7 @@ float responseToFloat(byte *value, size_t len);
 void callback(char *topic, byte *payload, unsigned int len);  //callback function for mqtt, see definition after loop
 
 void setup() {
-  // WebSerial.begin(115200);
+  WebSerial.begin(115200);
 
   setUpDefaultParameters();
 
@@ -180,9 +180,11 @@ void setup() {
   pinMode(START_IO, INPUT);
 
   wifi.setUpWiFi();
+  WebSerial.println("Pasó aquí");
   wifi.setUpOTA();
-  wifi.setUpWebServer(true);
+  wifi.setUpWebServer(false);
   setUpRTC();
+
 
   mqtt.connect();
   mqtt.setCallback(callback);
@@ -202,7 +204,7 @@ void setup() {
 void loop() {
   DateTime now = rtc.now();
 
-  if (!wifi.isConnected()) {
+  if (!wifi.isConnected() && mqtt.isServiceAvailable()) {
     wifi.reconnect();
     delay(500);
     return;
