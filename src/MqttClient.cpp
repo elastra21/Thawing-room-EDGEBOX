@@ -1,5 +1,4 @@
-#include "WIFI.h"
-#include "secrets.h"
+#include "hardware/Controller.h"  // This is included in order that the compiler knows the type of the variable WebSerial
 #include "MqttClient.h"
 
 WiFiClient esp32Client;
@@ -7,9 +6,12 @@ PubSubClient mqttClient(esp32Client);
 
 // void subscribeReceive(char* topic, byte* payload, unsigned int length);
 
-void MqttClient::connect() {
-  mqttClient.setServer(IP_ADDRESS, PORT);
-  if (mqttClient.connect(USERNAME)) {
+void MqttClient::connect(const char *domain, uint16_t port, const char *username) {
+  strncpy(mqtt_username, username, sizeof(mqtt_username) - 1);
+  mqtt_username[sizeof(mqtt_username) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
+
+  mqttClient.setServer(domain, port);
+  if (mqttClient.connect(mqtt_username)) {
     WebSerial.println("Connection has been established, well done");
     subscribeRoutine();
     no_service_available = false;
@@ -25,7 +27,7 @@ bool MqttClient::isServiceAvailable() {
 void MqttClient::reconnect() {
   while (!mqttClient.connected()) {
     WebSerial.print("Attempting MQTT connection...");
-    if (mqttClient.connect(USERNAME)) {
+    if (mqttClient.connect(mqtt_username)) {
       WebSerial.println("connected");
       subscribeRoutine();
     } else {
@@ -54,7 +56,7 @@ void MqttClient::setCallback(std::function<void(char *, uint8_t *, unsigned int)
 }
 
 void MqttClient::subscribeRoutine() {
-  if (mqttClient.connect(USERNAME)) {
+  if (mqttClient.connect(mqtt_username)) {
     WebSerial.println("connected, subscribing");
     if (!mqttClient.subscribe(sub_hours, 1)) WebSerial.println("sub hours failed !");
     if (!mqttClient.subscribe(sub_minutes, 1)) WebSerial.println("sub hours failed !");

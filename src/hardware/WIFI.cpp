@@ -33,6 +33,16 @@ static void recvMsg(uint8_t *data, size_t len){
   WebSerial.println(d);
 }
 
+void WIFI::init(const char* ssid, const char* password, const char* hostname){
+  strncpy(this->ssid, ssid, sizeof(this->ssid) - 1);
+  this->ssid[sizeof(this->ssid) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
+
+  strncpy(this->password, password, sizeof(this->password) - 1);
+  this->password[sizeof(this->password) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
+
+  strncpy(this->hostname, hostname, sizeof(this->hostname) - 1);
+  this->hostname[sizeof(this->hostname) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
+}
 
 void WIFI::setUpWebServer(bool brigeSerial){
   if(!SPIFFS.begin(true)){
@@ -42,7 +52,7 @@ void WIFI::setUpWebServer(bool brigeSerial){
 
 
   /*use mdns for host name resolution*/
-  if (!MDNS.begin(HOST_NAME)){ // http://esp32.local
+  if (!MDNS.begin(hostname)){ // http://esp32.local
     Serial.println("Error setting up MDNS responder!");
     while (1){
       delay(1000);
@@ -74,18 +84,16 @@ void WIFI::setUpWebServer(bool brigeSerial){
   }, handle_update_progress_cb);
   
   if (brigeSerial) {
-    #ifdef WebSerial_h // Verifica si WebSerialLite.h está incluido
-
-    WebSerial.begin(&server);
-    WebSerial.onMessage(recvMsg);
-
+    #ifdef WebSerial_h // Verifica si WebSerialLite.h está incluido 
+      WebSerial.begin(&server);
+      WebSerial.onMessage(recvMsg);
     #endif // WebSerialLite_h
   }
   server.begin();
 }
 
-void WIFI::setUpWiFi(){
-  WiFi.begin(SECRET_SSID, SECRET_PASS);
+void WIFI::connectToWiFi(){
+  WiFi.begin(ssid, password);
   uint32_t notConnectedCounter = 0;
   EEPROM.begin(32);
   while (WiFi.status() != WL_CONNECTED) {
@@ -116,7 +124,7 @@ void WIFI::setUpWiFi(){
 
 void WIFI::setUpOTA(){
   if(isConnected()){
-    ArduinoOTA.setHostname(HOST_NAME);
+    ArduinoOTA.setHostname(hostname);
     ArduinoOTA.onStart([]() {
     String type;
     type = ArduinoOTA.getCommand() == U_FLASH ? "sketch" : "filesystem";
@@ -160,7 +168,7 @@ bool WIFI::isConnected(){
 }
 
 void WIFI::reconnect(){
-  WiFi.begin(SECRET_SSID, SECRET_PASS);
+  WiFi.begin(ssid, password);
   uint8_t timeout = 0;
   vTaskDelay( 2000 );
   while ( WiFi.status() != WL_CONNECTED ){
