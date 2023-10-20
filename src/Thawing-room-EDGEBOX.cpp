@@ -289,21 +289,23 @@ void loop() {
     mqtt.publishData(ACK_A, N_SP.N_A);
     mqtt.publishData(ACK_B, N_SP.N_B);
 
+    // Ts & Tc
+    mqtt.publishData(ACK_TS, N_tset.N_ts_set);
+    mqtt.publishData(ACK_TC, N_tset.N_tc_set);
+
     A_B_timer = millis();
   }
 
   //---- PID Publishing ----//////////////////////////////////////////////////////////////////////
   // PID works only on STAGE 2
-  if (stage == 2 && STOP == 0) {
-    if (millis() - stg_2_pid_timer >= (TIME_ACQ_DELAY + 1)) {
-      WebSerial.println("Soft PID Actual Output is" + String(Output));
-      Output_float = float(coefOutput);
-      PID_data.PID_output = ((Output_float - 0) / (255 - 0)) * (100 - 0) + 0;
-      WebSerial.println("PID Output /100 is" + String(PID_data.PID_output));
+  if (millis() - stg_2_pid_timer >= (TIME_ACQ_DELAY + 1)) {
+    WebSerial.println("Soft PID Actual Output is" + String(Output));
+    Output_float = float(coefOutput);
+    PID_data.PID_output = ((Output_float - 0) / (255 - 0)) * (100 - 0) + 0;
+    WebSerial.println("PID Output /100 is" + String(PID_data.PID_output));
 
-      mqtt.publishData(PID_OUTPUT, PID_data.PID_output);
-      stg_2_pid_timer = millis();
-    }
+    mqtt.publishData(PID_OUTPUT, PID_data.PID_output);
+    stg_2_pid_timer = millis();
   }
 
   //---- START, DELAYED, STOP Button pressed ----////////////////////////////////////////////////
@@ -977,6 +979,9 @@ void setUpDefaultParameters(){
   N_st3.N_s1_st3_ontime = 1;
   N_st3.N_s1_st3_offtime = 15;
 
-  N_tset.N_ts_set = 40;
-  N_tset.N_tc_set = 40;
+  N_SP.N_A = 0.5;
+  N_SP.N_B = 20;
+
+  N_tset.N_ts_set = 4;
+  N_tset.N_tc_set = 2;
 }
