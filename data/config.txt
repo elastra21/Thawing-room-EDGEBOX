@@ -1,0 +1,10 @@
+{
+  "SSID": "Pez Gordo",
+  "WIFI_PASSWORD": "SardinaMacarena2021",
+  "HOST_NAME": "esp32",
+  "IP_ADDRESS": "192.168.0.196",
+  "PORT": 1883,
+  "USERNAME": "MDuino01",
+  "PASS": "",
+  "TOPIC": "home/bedroom/temperature"
+}
