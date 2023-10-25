@@ -1,4 +1,4 @@
-#include "hardware/Controller.h"  // This is included in order that the compiler knows the type of the variable WebSerial
+#include "hardware/Controller.h"  // This is included in order that the compiler knows the type of the variable logger
 #include "MqttClient.h"
 
 WiFiClient esp32Client;
@@ -12,11 +12,11 @@ void MqttClient::connect(const char *domain, uint16_t port, const char *username
 
   mqttClient.setServer(domain, port);
   if (mqttClient.connect(mqtt_username)) {
-    WebSerial.println("Connection has been established, well done");
+    logger.println("Connection has been established, well done");
     subscribeRoutine();
     no_service_available = false;
   } else {
-    WebSerial.println("Looks like the server connection failed...");
+    logger.println("Looks like the server connection failed...");
   }
 }
 
@@ -26,14 +26,14 @@ bool MqttClient::isServiceAvailable() {
 
 void MqttClient::reconnect() {
   while (!mqttClient.connected()) {
-    WebSerial.print("Attempting MQTT connection...");
+    logger.print("Attempting MQTT connection...");
     if (mqttClient.connect(mqtt_username)) {
-      WebSerial.println("connected");
+      logger.println("connected");
       subscribeRoutine();
     } else {
-      WebSerial.print("failed, rc=");
-      WebSerial.print(mqttClient.state());
-      WebSerial.println(" try again in 5 seconds");
+      logger.print("failed, rc=");
+      logger.printValue("failed, rc=",String(mqttClient.state()));
+      logger.println(" try again in 5 seconds");
       delay(5000);
     }
   }
@@ -57,14 +57,14 @@ void MqttClient::setCallback(std::function<void(char *, uint8_t *, unsigned int)
 
 void MqttClient::subscribeRoutine() {
   if (mqttClient.connect(mqtt_username)) {
-    WebSerial.println("connected, subscribing");
-    if (!mqttClient.subscribe(sub_hours, 1)) WebSerial.println("sub hours failed !");
-    if (!mqttClient.subscribe(sub_minutes, 1)) WebSerial.println("sub hours failed !");
-    if (!mqttClient.subscribe(sub_day, 1)) WebSerial.println("sub hours failed !");
-    if (!mqttClient.subscribe(sub_month, 1)) WebSerial.println("sub hours failed !");
-    if (!mqttClient.subscribe(sub_f1_st1_ontime, 1)) WebSerial.println("sub hours failed !");
-    if (!mqttClient.subscribe(sub_f1_st1_offtime, 1)) WebSerial.println("sub hours failed !");
-    if (!mqttClient.subscribe(sub_f1_st2_ontime, 1)) WebSerial.println("sub hours failed !");
+    logger.println("connected, subscribing");
+    if (!mqttClient.subscribe(sub_hours, 1)) logger.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_minutes, 1)) logger.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_day, 1)) logger.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_month, 1)) logger.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_f1_st1_ontime, 1)) logger.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_f1_st1_offtime, 1)) logger.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_f1_st2_ontime, 1)) logger.println("sub hours failed !");
     mqttClient.subscribe(sub_f1_st2_offtime, 1);
     mqttClient.subscribe(sub_s1_st2_ontime, 1);
     mqttClient.subscribe(sub_s1_st2_offtime, 1);
@@ -73,7 +73,7 @@ void MqttClient::subscribeRoutine() {
     mqttClient.subscribe(sub_s1_st3_ontime, 1);
     mqttClient.subscribe(sub_s1_st3_offtime, 1);
     mqttClient.subscribe(sub_A, 1);
-    if (!mqttClient.subscribe(sub_B, 1)) WebSerial.println("sub hours failed !");
+    if (!mqttClient.subscribe(sub_B, 1)) logger.println("sub hours failed !");
     mqttClient.subscribe(sub_P, 1);
     mqttClient.subscribe(sub_I, 1);
     mqttClient.subscribe(sub_D, 1);
@@ -91,8 +91,8 @@ void MqttClient::subscribeRoutine() {
     // mqttClient.subscribe(sub_address2, 1);
     // mqttClient.subscribe(sub_address3, 1);
     // mqttClient.subscribe(sub_address4, 1);
-    WebSerial.println("subscribing done");
-  } else WebSerial.println("not connected, subscribing aborted");
+    logger.println("subscribing done");
+  } else logger.println("not connected, subscribing aborted");
 }
 
 void MqttClient::publishData(String topic, double value) {

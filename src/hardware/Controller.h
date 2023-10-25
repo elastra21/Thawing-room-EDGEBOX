@@ -6,6 +6,7 @@
 #include "WIFI.h"
 #include <Wire.h>
 #include "config.h"
+#include "Logger.h"
 #include <RTClib.h>
 #include <WiFiUdp.h>
 #include <Arduino.h>
@@ -13,8 +14,6 @@
 #include <NTPClient.h>
 #include <Adafruit_ADS1X15.h>
 #include <DallasTemperature.h>
-
-#define WebSerial Serial
 
 #define TEMPERATURE_MIN  -50 // Minimum temperature value (in Celsius)
 #define TEMPERATURE_MAX  150

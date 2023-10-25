@@ -1,8 +1,12 @@
 #ifndef MY_MQTT_H
 #define MY_MQTT_H
 #include <Arduino.h>
-#include <WiFiClientSecure.h>
 #include <PubSubClient.h>
+#include "hardware/logger.h"
+#include <WiFiClientSecure.h>
+
+#define MQTT_USERNAME_SIZE 32
+
 
 //             subscribe topics    -------------------------------------------------------------------->
 #define sub_hours           "mduino/hours"
@@ -78,7 +82,7 @@ class MqttClient {
     void publishData(String topic, String value);
     void setCallback(std::function<void (char *, uint8_t *, unsigned int)> callback);
   private:
-    char mqtt_username[32];  
+    char mqtt_username[MQTT_USERNAME_SIZE];  
     bool no_service_available = true;
     bool last_connection_state = false;
 

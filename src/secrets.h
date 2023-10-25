@@ -19,5 +19,3 @@
 #define USERNAME  "MDuino01"  //name of the device on to the broker
 #define PASS      ""              // optional psw
 #define TOPIC     "home/bedroom/temperature" //topic to publish to
-
-// #define WebSerial Serial

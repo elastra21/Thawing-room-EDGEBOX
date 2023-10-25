@@ -1,7 +1,17 @@
 #ifndef THAWING_ROOM_H
 #define THAWING_ROOM_H
 
+#include <FS.h>
+#include <Wire.h>
+#include <SPIFFS.h>
+#include <PID_v1.h>
+// #include "secrets.h"
 #include <Arduino.h>
+#include "MqttClient.h"
+#include <ArduinoJson.h>
+#include "hardware/logger.h"
+#include "hardware/config.h"
+#include "hardware/Controller.h"
 
 //---- Function declaration ----/////////////////////////////////////////////////////////////////////////////
 void setUpRTC();
@@ -14,6 +24,7 @@ String addressToString(uint8_t *address);
 int responseToInt(byte *value, size_t len);
 float responseToFloat(byte *value, size_t len);
 void callback(char *topic, byte *payload, unsigned int len);  //callback function for mqtt, see definition after loop
+void runConfigFile(char* ssid, char* password, char* hostname, char* ip_address, uint16_t* port, char* username);
 
 
 //---- timing settings -----////////////////////////////////////////////////////////////////////////////////

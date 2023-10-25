@@ -1,13 +1,20 @@
 #ifndef MY_WIFI_H
 #define MY_WIFI_H
 #include "EEPROM.h"
-#include "SPIFFS.h"
 #include <Update.h>
 #include <ESPmDNS.h>
 #include <AsyncTCP.h>
 #include <WiFiMulti.h>
 #include <WiFiClient.h>
 #include <ArduinoOTA.h>
+#include "logger.h"
+#include "resources/WebFiles.h"
+
+#define SSID_SIZE 32
+#define PASSWORD_SIZE 64
+#define HOSTNAME_SIZE 32
+#define IP_ADDRESS_SIZE 16
+
 #ifdef WebSerial
   // No incluir WebSerialLite.h
 #else
@@ -27,9 +34,9 @@ class WIFI {
     bool getConnectionStatus();
     void setUpWebServer(bool brigeSerial = false);
   private:
-    char ssid[32];  
-    char password[64];
-    char hostname[32];  
+    char ssid[SSID_SIZE];  
+    char password[PASSWORD_SIZE];
+    char hostname[HOSTNAME_SIZE]; 
     bool last_connection_state = false;
 };
 #endif

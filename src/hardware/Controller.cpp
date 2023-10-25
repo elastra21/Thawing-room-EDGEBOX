@@ -13,7 +13,7 @@ const double temperature_per_step = range / REFERENCE;
 
 Controller::Controller(/* args */) {
   setUpLogger();
-  WebSerial.println("Controller created");
+  logger.println("Controller created");
 }
 
 Controller::~Controller() {
@@ -27,8 +27,8 @@ void Controller::init() {
 
 void Controller::setUpLogger() {
   #ifdef WebSerial
-    WebSerial.begin(115200);
-    WebSerial.println("Logger set up");
+    logger.init(115200);
+    logger.println("Logger set up");
   #endif
 }
 
@@ -73,7 +73,7 @@ void Controller::setUpOneWireProbes(){
 
 void Controller::setUpI2C() {
   while (!Wire.begin()){
-    WebSerial.println("RTC I2C not found");
+    logger.println("RTC I2C not found");
     delay(1000);
   }
 
@@ -81,14 +81,14 @@ void Controller::setUpI2C() {
 
 void Controller::setUpRTC() {
   if (!rtc.begin()) {
-      WebSerial.println("Couldn't find RTC");
+      logger.println("Couldn't find RTC");
     while (1);
   }
   // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
   DateTime now = rtc.now();
   if (true) {
-    Serial.println("RTC time seems invalid. Adjusting to NTP time.");
+    logger.println("RTC time seems invalid. Adjusting to NTP time.");
     
     timeClient.begin();
     timeClient.setTimeOffset(SECS_IN_HR * TIME_ZONE_OFFSET_HRS);
@@ -115,8 +115,15 @@ DateTime Controller::getDateTime() {
   return rtc.now();
 }
 
+/// @brief 
+/// @param input 
+/// @return 
+// Those values are calculated with excel, either way hugo should fix this. in order that have a real linear ramp
 uint64_t Controller::readAnalogInput(uint8_t input) {
-  return analog_inputs.readADC_SingleEnded(input);;
+  uint64_t raw_voltage_ch = analog_inputs.readADC_SingleEnded(input) ;
+  // If the input is odd, multiply by 1.5 Due that has a 5.1K resistor instead of a 10K
+  if (input % 2 != 0) raw_voltage_ch = static_cast<uint64_t>(raw_voltage_ch * 1.5);
+  return raw_voltage_ch - 2708;
 }
 
 bool Controller::readDigitalInput(uint8_t input) {
@@ -132,11 +139,11 @@ void Controller::writeDigitalOutput(uint8_t output, uint8_t value) {
 }
 
 float Controller::readTempFrom(uint8_t channel) {
-  const uint16_t raw_voltage_ch = analogRead(channel); 
+  const uint16_t raw_voltage_ch = readAnalogInput(channel); 
   // const float voltage_ch = (raw_voltage_ch * voltage_per_step);
   // Serial.println(voltage_ch);
   // const float temp = (voltage_ch * temperature_per_step) + TEMPERATURE_MIN;
-  const float temp = raw_voltage_ch*0.0247 - 52.933; // ramp calculated with excel trhough manual calibration
+  const float temp = raw_voltage_ch * (50 + 20) / (13284 - 2708) - 20; // ramp calculated with excel trhough manual calibration
   return temp;
 }
 
