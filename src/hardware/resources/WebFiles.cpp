@@ -106,7 +106,7 @@ const char* SERVER_INDEX_HTML = R"RAW_HTML(
 
 const char* STYLE_CSS = R"RAW_CSS(
 #file-input, input {
-    width:100%;
+    width:90%;
     height:44px;
     border-radius:4px;
     margin:10px auto;
