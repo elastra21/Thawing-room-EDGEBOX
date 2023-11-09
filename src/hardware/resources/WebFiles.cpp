@@ -103,18 +103,36 @@ const char* SERVER_INDEX_HTML = R"RAW_HTML(
 </html>
 )RAW_HTML";
 
+const char* SETUP_WIFI_HTML = R"RAW_HTML(
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Setup WiFi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" type="text/css" href="style.css" />
+  </head>
+  <form name="loginForm" action="/save" method="post">
+    <h1>Setup a new Network</h1>
+    <input name="ssid" placeholder="SSID" />
+    <input name="password" placeholder="Password" type="Password" />
+    <input type="submit" class="btn" value="Save" />
+  </form>
+</html>
+)RAW_HTML";
+
 
 const char* STYLE_CSS = R"RAW_CSS(
 #file-input, input {
-    width:90%;
-    height:44px;
+    flex:1;
     border-radius:4px;
-    margin:10px auto;
+    margin:10px 0;
     font-size:15px;
 }
 input {
     background:#f1f1f1;border:0;
     padding:0 15px;
+    min-height:44px;
 }
 body{
     background:#3498db;
@@ -140,6 +158,8 @@ body{
     height:10px;
 }
 form{
+    display:flex;
+    flex-direction:column;
     background:#fff;
     max-width:258px;
     margin:75px auto;

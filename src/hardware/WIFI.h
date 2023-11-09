@@ -9,6 +9,11 @@
 #include <ArduinoOTA.h>
 #include "logger.h"
 #include "resources/WebFiles.h"
+// AP mode, This is not well implemented yet!!!!!!!
+#include <FS.h>
+#include <SPIFFS.h>
+#include <ArduinoJson.h>
+///////////////////////////////////////////////////
 
 #define SSID_SIZE 32
 #define PASSWORD_SIZE 64
@@ -29,6 +34,7 @@ class WIFI {
     void setUpOTA();
     void reconnect();
     bool isConnected();
+    void startAPMode();
     void connectToWiFi();
     bool refreshWiFiStatus();
     bool getConnectionStatus();

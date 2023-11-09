@@ -33,6 +33,47 @@ static void recvMsg(uint8_t *data, size_t len){
   WebSerial.println(d);
 }
 
+//This is not well implemented yet!!!!!!!
+
+static void saveCredentials(const String& new_ssid, const String& new_pass) {
+  // Read the existing configuration
+  File configFile = SPIFFS.open("/config.txt", FILE_READ);
+  if (!configFile) {
+    Serial.println("Failed to open config file for reading");
+    return;
+  }
+
+  // Allocate a temporary buffer for the content
+  String content = configFile.readString();
+  configFile.close();
+
+  // Parse the JSON object from the file
+  DynamicJsonDocument doc(1024);
+  auto error = deserializeJson(doc, content);
+  if (error) {
+    Serial.println("Failed to parse config file");
+    return;
+  }
+
+  // Update the values
+  doc["SSID"] = new_ssid;
+  doc["WIFI_PASSWORD"] = new_pass;
+
+  // Open file for writing
+  configFile = SPIFFS.open("/config.txt", FILE_WRITE);
+  if (!configFile) {
+    Serial.println("Failed to open config file for writing");
+    return;
+  }
+
+  // Serialize JSON to file
+  if (serializeJson(doc, configFile) == 0) {
+    Serial.println("Failed to write to config file");
+  }
+
+  configFile.close();
+} 
+
 void WIFI::init(const char* ssid, const char* password, const char* hostname){
   strncpy(this->ssid, ssid, sizeof(this->ssid) - 1);
   this->ssid[sizeof(this->ssid) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
@@ -86,6 +127,41 @@ void WIFI::setUpWebServer(bool brigeSerial){
   server.begin();
 }
 
+void WIFI::startAPMode(){
+  Serial.println("\nFailed to connect to WiFi. Starting AP mode...");
+  WiFi.softAP(hostname, NULL);  // Start the AP without a password
+
+  // Start server for configuration page
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/html", SETUP_WIFI_HTML);
+  });
+
+  server.on("/save", HTTP_POST, [](AsyncWebServerRequest *request) {
+    String new_ssid;
+    String new_pass;
+
+    if (request->hasParam("ssid", true) && request->hasParam("password", true)) {
+      new_ssid = request->getParam("ssid", true)->value();
+      new_pass = request->getParam("password", true)->value();
+      
+      // Save the new credentials to SPIFFS
+      saveCredentials(new_ssid, new_pass);
+      
+      request->send(200, "text/plain", "Credentials saved. The ESP32 will now reboot.");
+      delay(3000); // Give some time to send the response
+      ESP.restart();
+    } else {
+      request->send(400, "text/plain", "Invalid request. Please submit SSID and password.");
+    }
+  });
+
+  server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/css", STYLE_CSS);
+  });
+
+  server.begin();
+}
+
 void WIFI::connectToWiFi(){
   WiFi.begin(ssid, password);
   uint32_t notConnectedCounter = 0;
@@ -98,7 +174,10 @@ void WIFI::connectToWiFi(){
     if(notConnectedCounter > 7) { // Reset board if not connected after 5s
       logger.println("Resetting due to Wifi not connecting...");
       const uint8_t num_of_tries = EEPROM.readInt(1);
-      if (num_of_tries == 3) break;          
+      if (num_of_tries == 3) {
+        // startAPMode(); // not thinked yet how implement this but is workin
+        break; 
+      }         
       else {
         EEPROM.writeInt(1, num_of_tries + 1);
         EEPROM.commit();
