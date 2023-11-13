@@ -940,22 +940,57 @@ int responseToInt(byte *value, size_t len) {
 
 
 void setUpDefaultParameters(){
-  // Default parameters
-  N_st1.N_f1_st1_ontime = 1;
-  N_st1.N_f1_st1_offtime = 40;
 
-  N_st2.N_f1_st2_ontime = 30;
-  N_st2.N_f1_st2_offtime = 10;
-  N_st2.N_s1_st2_ontime = 1;
-  N_st2.N_s1_st2_offtime = 5;
+  File file = SPIFFS.open("/defaultParameters.txt", "r");
+  if (!file) {
+    Serial.println("Error al abrir el archivo de parámetros");
+    return;
+  }
 
-  N_st3.N_f1_st3_ontime = 10;
-  N_st3.N_f1_st3_offtime = 30;
-  N_st3.N_s1_st3_ontime = 1;
-  N_st3.N_s1_st3_offtime = 15;
+  String jsonText = file.readString();
+  file.close();
 
-  N_tset.N_ts_set = 40;
-  N_tset.N_tc_set = 40;
+  // Parsea el JSON
+  StaticJsonDocument<1024> doc;
+  DeserializationError error = deserializeJson(doc, jsonText);
+  if (error) {
+    Serial.println("Error al parsear el JSON");
+    return;
+  }
+
+  N_st1.N_f1_st1_ontime = doc["stage1"]["f1Ontime"];
+  N_st1.N_f1_st1_offtime = doc["stage1"]["f1Offtime"];
+
+  N_st2.N_f1_st2_ontime = doc["stage2"]["f1Ontime"];
+  N_st2.N_f1_st2_offtime = doc["stage2"]["f1Offtime"];
+  N_st2.N_s1_st2_ontime = doc["stage2"]["s1Ontime"];
+  N_st2.N_s1_st2_offtime = doc["stage2"]["s1Offtime"];
+
+  N_st3.N_f1_st3_ontime = doc["stage3"]["f1Ontime"];
+  N_st3.N_f1_st3_offtime = doc["stage3"]["f1Offtime"];
+  N_st3.N_s1_st3_ontime = doc["stage3"]["s1Ontime"];
+  N_st3.N_s1_st3_offtime = doc["stage3"]["s1Offtime"];
+
+  N_tset.N_ts_set = doc["tset"]["tsSet"];
+  N_tset.N_tc_set = doc["tset"]["tcSet"];
+
+  // Imprime los valores de las variables
+  logger.println("Valores de las variables:");
+  logger.printValue("N_st1.N_f1_st1_ontime: ",  String(N_st1.N_f1_st1_ontime)); 
+  logger.printValue("N_st1.N_f1_st1_offtime: ", String(N_st1.N_f1_st1_offtime));
+  
+  logger.printValue("N_st2.N_f1_st2_ontime: ", String(N_st2.N_f1_st2_ontime));
+  logger.printValue("N_st2.N_f1_st2_offtime: ", String(N_st2.N_f1_st2_offtime));
+  logger.printValue("N_st2.N_s1_st2_ontime: ", String(N_st2.N_s1_st2_ontime));
+  logger.printValue("N_st2.N_s1_st2_offtime: ", String(N_st2.N_s1_st2_offtime));
+
+  logger.printValue("N_st3.N_f1_st3_ontime: ", String(N_st3.N_f1_st3_ontime));
+  logger.printValue("N_st3.N_f1_st3_offtime: ", String(N_st3.N_f1_st3_offtime));
+  logger.printValue("N_st3.N_s1_st3_ontime: ", String(N_st3.N_s1_st3_ontime));
+  logger.printValue("N_st3.N_s1_st3_offtime: ", String(N_st3.N_s1_st3_offtime));
+
+  logger.printValue("N_tset.N_ts_set: ", String( N_tset.N_ts_set));
+  logger.printValue("N_tset.N_tc_set: ", String( N_tset.N_tc_set));
 }
 
 void runConfigFile(char* ssid, char* password, char* hostname, char* ip_address, uint16_t* port, char* username) {
@@ -993,11 +1028,5 @@ void runConfigFile(char* ssid, char* password, char* hostname, char* ip_address,
   if (doc.containsKey("PORT")) *port = doc["PORT"];
   if (doc.containsKey("USERNAME")) strlcpy(username, doc["USERNAME"], MQTT_USERNAME_SIZE);
 
-  Serial.println(ssid);
-  Serial.println(password);
-  Serial.println(hostname);
-  Serial.println(*port);
-  Serial.println(ip_address);
-  Serial.println(username);
 }
 
