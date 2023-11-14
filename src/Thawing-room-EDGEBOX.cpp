@@ -942,9 +942,9 @@ float responseToFloat(byte *value, size_t len) {
 }
 
 int responseToInt(byte *value, size_t len) {
-  String puta_mierda_mal_parida;
-  for (int i = 0; i < len; i++) puta_mierda_mal_parida += (char)value[i];
-  return puta_mierda_mal_parida.toInt();
+  String string_builder;
+  for (int i = 0; i < len; i++) string_builder += (char)value[i];
+  return string_builder.toInt();
 }
 
 // float getIRTemp() {
