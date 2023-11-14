@@ -15,6 +15,10 @@
     "s1Ontime": 1,
     "s1Offtime": 15
   },
+  "setPoint": {
+    "A": 0.5,
+    "B": 20
+  },
   "tset": {
     "tsSet": 40,
     "tcSet": 40

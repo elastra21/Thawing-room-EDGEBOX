@@ -81,6 +81,9 @@ class MqttClient {
     void publishData(String topic, double value);
     void publishData(String topic, String value);
     void setCallback(std::function<void (char *, uint8_t *, unsigned int)> callback);
+    void publishEcava(const String* topics, const String* values, int arraySize, const char* mqttTopic);
+    String getIsoTimestamp();
+    void exampleCall();
   private:
     char mqtt_username[MQTT_USERNAME_SIZE];  
     bool no_service_available = true;

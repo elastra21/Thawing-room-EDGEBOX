@@ -117,3 +117,42 @@ bool MqttClient::refreshMQTTStatus() {
 bool MqttClient::getConnectionStatus() {
   return last_connection_state;
 }
+
+
+
+
+// Función que construye el JSON y lo publica.
+void MqttClient::publishEcava(const String* topics, const String* values, int arraySize, const char* mqttTopic) {
+    StaticJsonDocument<512> jsonDoc; // Adjust the size as necessary
+
+  String timeStamp = getIsoTimestamp(); // Ensure you have a function to get the ISO timestamp.
+
+  for (int i = 0; i < arraySize; i++) {
+    // This will create a nested array for each topic
+    JsonArray nestedArray = jsonDoc.createNestedArray(topics[i]);
+    // Now we create a nested array for the timestamp and value pair
+    JsonArray dataPair = nestedArray.createNestedArray();
+    dataPair.add(timeStamp);
+    dataPair.add(values[i]);
+  }
+
+  String output;
+  serializeJson(jsonDoc, output);
+  mqttClient.publish(mqttTopic, output.c_str());
+}
+
+// Función para obtener el timestamp ISO 8601.
+// Deberás implementar esto para que funcione con tu configuración específica y zona horaria.
+String MqttClient::getIsoTimestamp() {
+  // Implementa la obtención del timestamp aquí.
+  // Devuelve el timestamp en formato ISO 8601 como String.
+  return "2023-11-13T12:49:52.737+08:00";
+}
+
+// Función de ejemplo de cómo podrías llamar a publishData.
+void MqttClient::exampleCall() {
+  const String topics[] = {"mfp1.Tc", "mfp1.Ta", "mfp1.Ts"};
+  const String values[] = {"23.5", "22.5", "21.5"};
+
+  publishEcava(topics, values, 3, "xda.json://Fish.dxscript/Fish/onchange");
+}

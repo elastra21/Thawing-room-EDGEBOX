@@ -132,9 +132,6 @@ void setup() {
   runConfigFile(SSID, PASS, HOST_NAME, IP_ADDRESS, &PORT, USERNAME);
   setUpDefaultParameters();
 
-  N_SP.N_A = 0.5;
-  N_SP.N_B = 20; 
-
   setStage(0);
 
   controller.setUpWiFi(SSID, PASS,HOST_NAME);
@@ -143,6 +140,7 @@ void setup() {
 
   mqtt.connect(IP_ADDRESS, PORT, USERNAME);
   mqtt.setCallback(callback);
+  // mqtt.exampleCall();
 
   //Turn the PID on
   air_in_feed_PID.SetMode(AUTOMATIC);
@@ -971,6 +969,9 @@ void setUpDefaultParameters(){
   N_st3.N_s1_st3_ontime = doc["stage3"]["s1Ontime"];
   N_st3.N_s1_st3_offtime = doc["stage3"]["s1Offtime"];
 
+  N_SP.N_A = doc["setPoint"]["A"];
+  N_SP.N_B = doc["setPoint"]["B"];; 
+
   N_tset.N_ts_set = doc["tset"]["tsSet"];
   N_tset.N_tc_set = doc["tset"]["tcSet"];
 
@@ -988,6 +989,9 @@ void setUpDefaultParameters(){
   logger.printValue("N_st3.N_f1_st3_offtime: ", String(N_st3.N_f1_st3_offtime));
   logger.printValue("N_st3.N_s1_st3_ontime: ", String(N_st3.N_s1_st3_ontime));
   logger.printValue("N_st3.N_s1_st3_offtime: ", String(N_st3.N_s1_st3_offtime));
+
+  logger.printValue("N_SP.N_A: ", String( N_SP.N_A));
+  logger.printValue("N_SP.N_B: ", String( N_SP.N_B));
 
   logger.printValue("N_tset.N_ts_set: ", String( N_tset.N_ts_set));
   logger.printValue("N_tset.N_tc_set: ", String( N_tset.N_tc_set));
