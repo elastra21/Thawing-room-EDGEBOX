@@ -882,15 +882,40 @@ void stopRoutine() {
   }
 }
 
-
 void updateTemperature() {
   controller.updateProbesTemperatures();
 
-  TA = controller.readTempFrom(TA_AI);  // Ta
-  TS = controller.readTempFrom(TS_AI);  // Ts
-  TC = controller.readTempFrom(TC_AI);  // Tc
+  const float ta_raw = controller.readTempFrom(TA_AI);  // Ta
+  const float ts_raw = controller.readTempFrom(TS_AI);  // Ts
+  const float tc_raw = controller.readTempFrom(TC_AI);  // Tc
+
+  TA = validateTemperature(ta_raw, TA_TYPE) ? ta_raw : TA_DEF;
+  TS = validateTemperature(ts_raw, TS_TYPE) ? ts_raw : TS_DEF;
+  TC = validateTemperature(tc_raw, TC_TYPE) ? tc_raw : TC_DEF;
 
   TI = controller.getOneWireTempFrom(controller.ADDRESS_TI);  // Ti
+}
+
+bool validateTemperature(float temp, SensorProbes type) {
+  switch (type) {
+    case TA_TYPE:
+      if (temp >= TA_MIN && temp <= TA_MAX) return true;
+      else sendTemperaturaAlert(temp, "TA");
+      break;
+    case TS_TYPE:
+      if (temp >= TS_MIN && temp <= TS_MAX) return true;
+      else sendTemperaturaAlert(temp, "TS");
+      break;
+    case TC_TYPE:
+      if (temp >= TC_MIN && temp <= TC_MAX) return true;
+      else sendTemperaturaAlert(temp, "TC");
+      break;
+  }
+  return false;
+}
+
+void sendTemperaturaAlert(float temp, String sensor){
+  // Not implemented yet!
 }
 
 // THIS SHOULD BE ALSO IN THE CONTROLLER
