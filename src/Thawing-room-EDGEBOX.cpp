@@ -621,57 +621,69 @@ void callback(char *topic, byte *payload, unsigned int len) {
     logger.println("Stage 2 Month set to: " + String(N_rtc.N_month));
   }
 
+  bool update_default_parameters = false;
+
   //F1 stg1 on/off time
   if (strcmp(topic, sub_f1_st1_ontime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
     N_st1.N_f1_st1_ontime = responseToFloat(payload, len);
     logger.println("F1 Stage 1 on time set to: " + String(N_st1.N_f1_st1_ontime) + " MINS");
+    update_default_parameters = true;
   }
 
   if (strcmp(topic, sub_f1_st1_offtime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
     N_st1.N_f1_st1_offtime = responseToFloat(payload, len);
     logger.println("F1 Stage 1 off time set to: " + String(N_st1.N_f1_st1_offtime) + " MINS");
+    update_default_parameters = true;
   }
 
   // F1 and S1 STAGE 2 on/off time
   if (strcmp(topic, sub_f1_st2_ontime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
     N_st2.N_f1_st2_ontime = responseToFloat(payload, len);
     logger.println("F1 Stage 2 on time set to: " + String(N_st2.N_f1_st2_ontime) + " MINS");
+    update_default_parameters = true;
   }
 
   if (strcmp(topic, sub_f1_st2_offtime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
     N_st2.N_f1_st2_offtime = responseToFloat(payload, len);
     logger.println("F1 Stage 2 off time set to: " + String(N_st2.N_f1_st2_offtime) + " MINS");
+    update_default_parameters = true;
   }
 
   if (strcmp(topic, sub_s1_st2_ontime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
     N_st2.N_s1_st2_ontime = responseToFloat(payload, len);
     logger.println("S1 Stage 2 on time set to: " + String(N_st2.N_s1_st2_ontime) + " MINS");
+    update_default_parameters = true;
   }
 
   if (strcmp(topic, sub_s1_st2_offtime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
     N_st2.N_s1_st2_offtime = responseToFloat(payload, len);
     logger.println("S1 Stage 2 off time set to: " + String(N_st2.N_s1_st2_offtime) + " MINS");
+    update_default_parameters = true;
   }
 
   // F1 and S1 STAGE 3 on/off time
   if (strcmp(topic, sub_f1_st3_ontime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
     N_st3.N_f1_st3_ontime = responseToFloat(payload, len);
     logger.println("F1 Stage 3 on time set to: " + String(N_st3.N_f1_st3_ontime) + " MINS");
+    update_default_parameters = true;
   }
 
   if (strcmp(topic, sub_f1_st3_offtime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
     N_st3.N_f1_st3_offtime = responseToFloat(payload, len);
     logger.println("F1 Stage 3 off time set to: " + String(N_st3.N_f1_st3_offtime) + " MINS");
+    update_default_parameters = true;
   }
 
   if (strcmp(topic, sub_s1_st3_ontime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
     N_st3.N_s1_st3_ontime = responseToFloat(payload, len);
     logger.println("S1 Stage 3 on time set to: " + String(N_st3.N_s1_st3_ontime) + " MINS");
+    update_default_parameters = true;
   }
 
   if (strcmp(topic, sub_s1_st3_offtime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
     N_st3.N_s1_st3_offtime = responseToFloat(payload, len);
     logger.println("S1 Stage 3 off time set to: " + String(N_st3.N_s1_st3_offtime) + " MINS");
+    update_default_parameters = true;
   }
 
   // Sub A and Sub B value update
@@ -679,12 +691,14 @@ void callback(char *topic, byte *payload, unsigned int len) {
     N_SP.N_A = responseToFloat(payload, len);
     // N_SP.N_A = atoi((char *)payload);
     logger.println("A set to: " + String(N_SP.N_A));
+    update_default_parameters = true;
     R_A = 1;
   }
 
   if (strcmp(topic, sub_B) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
     N_SP.N_B = responseToFloat(payload, len);
     logger.println("B set to: " + String(N_SP.N_B));
+    update_default_parameters = true;
     R_B = 1;
   }
 
@@ -722,12 +736,14 @@ void callback(char *topic, byte *payload, unsigned int len) {
   if (strcmp(topic, sub_ts_set) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
     N_tset.N_ts_set = responseToFloat(payload, len);
     logger.println("Ts Condition set to: " + String(N_tset.N_ts_set));
+    update_default_parameters = true;
   }
 
   if (strcmp(topic, sub_tc_set) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
     N_tset.N_tc_set = responseToFloat(payload, len);
     // Tc_cond = N_tset->N_tc_set;
     logger.println("Tc Condition set to: " + String(N_tset.N_tc_set));
+    update_default_parameters = true;
   }
 
   // START
@@ -754,96 +770,62 @@ void callback(char *topic, byte *payload, unsigned int len) {
     logger.println("Ts is now IR" + String(N_chooseTs));
   }
 
-  // Address MQTT
-  // if (strcmp(topic, sub_address1) == 0) {
-  //   logger.print("Me la pelas");
-  //   String S_address1;
-  //   char *tmp;
-  //   int i = 0;
+  if(update_default_parameters) updateDefaultParameters();
+}
 
-  //   for (int i = 0; i < len; i++) {
-  //     S_address1 += (char)payload[i];
-  //   }
+void updateDefaultParameters(){
+  // Abre el archivo de configuración existente
+  File configFile = SPIFFS.open("/defaultParameters.txt", FILE_READ);
+  if (!configFile) {
+    Serial.println("Error al abrir el archivo de configuración para lectura");
+    return;
+  }
 
-  //   tmp = strtok(&S_address1[0], ",");
+  // Lee el contenido en una cadena
+  String content = configFile.readString();
+  configFile.close();
 
-  //   while (tmp) {
-  //     N_address1[i++] = atoi(tmp);
-  //     tmp = strtok(NULL, ",");
-  //   }
+  // Parsea el objeto JSON del archivo
+  StaticJsonDocument<1024> doc; // Cambiado a StaticJsonDocument
+  auto error = deserializeJson(doc, content);
+  if (error) {
+    Serial.println("Error al parsear el archivo de configuración");
+    return;
+  }
 
-  //   for (int i = 0; i < 8; i++) {
-  //     EEPROM.write(i, N_address1[i]);
-  //     logger.println(EEPROM.read(i));
-  //   }
-  // }
+  // Update the values
+  doc["stage1"]["f1Ontime"] = N_st1.N_f1_st1_ontime;
+  doc["stage1"]["f1Offtime"] = N_st1.N_f1_st1_offtime;
 
-  // if (strcmp(topic, sub_address2) == 0) {
-  //   logger.println(" Test add2");
-  //   String S_address2;
-  //   char *tmp;
-  //   int i = 0;
+  doc["stage2"]["f1Ontime"] = N_st2.N_f1_st2_ontime;
+  doc["stage2"]["f1Offtime"] = N_st2.N_f1_st2_offtime;
+  doc["stage2"]["s1Ontime"] = N_st2.N_s1_st2_ontime;
+  doc["stage2"]["s1Offtime"] = N_st2.N_s1_st2_offtime;
 
-  //   for (int i = 0; i < len; i++) {
-  //     S_address2 += (char)payload[i];
-  //   }
+  doc["stage3"]["f1Ontime"] = N_st3.N_f1_st3_ontime;
+  doc["stage3"]["f1Offtime"] = N_st3.N_f1_st3_offtime;
+  doc["stage3"]["s1Ontime"] = N_st3.N_s1_st3_ontime;
+  doc["stage3"]["s1Offtime"] = N_st3.N_s1_st3_offtime;
 
-  //   tmp = strtok(&S_address2[0], ",");
+  doc["setPoint"]["A"] = N_SP.N_A;
+  doc["setPoint"]["B"] = N_SP.N_B;
+  
+  doc["tset"]["tsSet"] = N_tset.N_ts_set;
+  doc["tset"]["tcSet"] = N_tset.N_tc_set;
 
-  //   while (tmp) {
-  //     N_address2[i++] = atoi(tmp);
-  //     tmp = strtok(NULL, ",");
-  //   }
+  // Open file for writing
+  configFile = SPIFFS.open("/defaultParameters.txt", FILE_WRITE);
+  if (!configFile) {
+    Serial.println("Error al abrir el archivo de configuración para escritura");
+    return;
+  }
 
-  //   for (int i = 8; i < 16; i++) {
-  //     EEPROM.write(i, N_address2[i - 8]);
-  //     logger.println(EEPROM.read(i));
-  //   }
-  // }
+  // Serializa el JSON al archivo
+  if (serializeJson(doc, configFile) == 0) {
+    Serial.println("Error al escribir en el archivo de configuración");
+  }
 
-  // if (strcmp(topic, sub_address3) == 0) {
-  //   String S_address3;
-  //   char *tmp;
-  //   int i = 0;
-
-  //   for (int i = 0; i < len; i++) {
-  //     S_address3 += (char)payload[i];
-  //   }
-
-  //   tmp = strtok(&S_address3[0], ",");
-
-  //   while (tmp) {
-  //     N_address3[i++] = atoi(tmp);
-  //     tmp = strtok(NULL, ",");
-  //   }
-
-  //   for (int i = 16; i < 24; i++) {
-  //     EEPROM.write(i, N_address3[i - 16]);
-  //     logger.println(EEPROM.read(i));
-  //   }
-  //}
-
-  // if (strcmp(topic, sub_address4) == 0) {
-  //   String S_address4;
-  //   char *tmp;
-  //   int i = 0;
-
-  //   for (int i = 0; i < len; i++) {
-  //     S_address4 += (char)payload[i];
-  //   }
-
-  //   tmp = strtok(&S_address4[0], ",");
-
-  //   while (tmp) {
-  //     N_address4[i++] = atoi(tmp);
-  //     tmp = strtok(NULL, ",");
-  //   }
-
-  //   for (int i = 24; i < 32; i++) {
-  //     EEPROM.write(i, N_address4[i - 24]);
-  //     logger.println(EEPROM.read(i));
-  //   }
-  // }
+  configFile.close();
 }
 
 //// Stop button pressed ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -935,11 +917,15 @@ void setStage(int Stage) {
   mqtt.publishData(STAGE, Stage);
 }
 
+// THIS SHOULD BE ALSO IN THE OTHER PLACE
+
 float responseToFloat(byte *value, size_t len) {
   String string_builder;
   for (int i = 0; i < len; i++) string_builder += (char)value[i];
   return string_builder.toFloat();
 }
+
+// THIS SHOULD BE ALSO IN THE OTHER PLACE
 
 int responseToInt(byte *value, size_t len) {
   String string_builder;
@@ -961,6 +947,7 @@ int responseToInt(byte *value, size_t len) {
 //   return temperature;
 // }
 
+// THIS SHOULD BE ALSO IN THE CONTROLLER
 
 void setUpDefaultParameters(){
 
@@ -1021,6 +1008,8 @@ void setUpDefaultParameters(){
   logger.printValue("N_tset.N_ts_set: ", String( N_tset.N_ts_set));
   logger.printValue("N_tset.N_tc_set: ", String( N_tset.N_tc_set));
 }
+
+// THIS SHOULD BE ALSO IN THE OTHER PLACE
 
 void runConfigFile(char* ssid, char* password, char* hostname, char* ip_address, uint16_t* port, char* username) {
   // Iniciar SPIFFS
