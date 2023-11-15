@@ -878,7 +878,7 @@ void updateTemperature() {
   TI = controller.getOneWireTempFrom(controller.ADDRESS_TI);  // Ti
 }
 
-bool validateTemperature(float temp, SensorProbes type) {
+bool validateTemperature(float temp, uint8_t type) {
   switch (type) {
     case TA_TYPE:
       if (temp >= TA_MIN && temp <= TA_MAX) return true;

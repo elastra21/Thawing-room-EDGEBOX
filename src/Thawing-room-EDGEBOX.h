@@ -20,9 +20,12 @@ void stopRoutine();
 void updateTemperature();
 void setStage(int Stage);
 void setUpDefaultParameters();
+void updateDefaultParameters();
 String addressToString(uint8_t *address);
 int responseToInt(byte *value, size_t len);
 float responseToFloat(byte *value, size_t len);
+void sendTemperaturaAlert(float temp, String sensor);
+bool validateTemperature(float temp, uint8_t type);
 void callback(char *topic, byte *payload, unsigned int len);  //callback function for mqtt, see definition after loop
 void runConfigFile(char* ssid, char* password, char* hostname, char* ip_address, uint16_t* port, char* username);
 
