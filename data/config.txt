@@ -1,10 +1,10 @@
 {
-  "SSID": "Pez Gordo",
-  "WIFI_PASSWORD": "SardinaMacarena2021",
-  "HOST_NAME": "esp32",
-  "IP_ADDRESS": "192.168.100.51",
+  "SSID": "MFP-Guest24",
+  "WIFI_PASSWORD": "testing123",
+  "HOST_NAME": "eltesteador",
+  "IP_ADDRESS": "192.168.1.89",
   "PORT": 1883,
-  "USERNAME": "MDuino01",
+  "USERNAME": "hola",
   "PASS": "",
-  "TOPIC": "home/bedroom/temperature"
+  "TOPIC": "nomms/"
 }

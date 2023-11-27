@@ -14,9 +14,9 @@
 #include "hardware/Controller.h"
 
 //---- Function declaration ----/////////////////////////////////////////////////////////////////////////////
-void setUpRTC();
-float getIRTemp();
+// float getIRTemp();
 void stopRoutine();
+bool noButtonPressed();
 void updateTemperature();
 void setStage(int Stage);
 void setUpDefaultParameters();
@@ -24,10 +24,11 @@ void updateDefaultParameters();
 String addressToString(uint8_t *address);
 int responseToInt(byte *value, size_t len);
 float responseToFloat(byte *value, size_t len);
-void sendTemperaturaAlert(float temp, String sensor);
 bool validateTemperature(float temp, uint8_t type);
+void sendTemperaturaAlert(float temp, String sensor);
 void callback(char *topic, byte *payload, unsigned int len);  //callback function for mqtt, see definition after loop
-void runConfigFile(char* ssid, char* password, char* hostname, char* ip_address, uint16_t* port, char* username);
+bool hasIntervalPassed(uint32_t &previousMillis, uint32_t interval, bool to_min = false);
+void runConfigFile(char* ssid, char* password, char* hostname, char* ip_address, uint16_t* port, char* username, char* prefix_topic);
 
 
 //---- timing settings -----////////////////////////////////////////////////////////////////////////////////

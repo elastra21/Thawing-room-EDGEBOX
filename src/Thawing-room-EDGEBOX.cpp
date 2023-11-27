@@ -128,8 +128,9 @@ void setup() {
   char IP_ADDRESS[IP_ADDRESS_SIZE];
   uint16_t PORT;
   char USERNAME[MQTT_USERNAME_SIZE];
+  char PREFIX_TOPIC[MQTT_USERNAME_SIZE];
 
-  runConfigFile(SSID, PASS, HOST_NAME, IP_ADDRESS, &PORT, USERNAME);
+  runConfigFile(SSID, PASS, HOST_NAME, IP_ADDRESS, &PORT, USERNAME, PREFIX_TOPIC);
   setUpDefaultParameters();
 
   setStage(0);
@@ -182,8 +183,8 @@ void loop() {
 
   if ((TI) > (LOW_TEMP_LIMIT) && (TI) < (HIGH_TEMP_LIMIT)) TI_F = TI;
 
-  if ((millis() - address_sending_timer >= 10000)) {
-
+  if (hasIntervalPassed(address_sending_timer,10000U)) {
+    
     // String ta_string_address = addressToString(controller.ADDRESS_TA);
     // mqtt.publishData("mduino/sendadd1", ta_string_address);
 
@@ -195,13 +196,11 @@ void loop() {
 
     // String ti_string_address = addressToString(controller.ADDRESS_TI);
     // mqtt.publishData("mduino/sendadd4", ti_string_address);
-
-    address_sending_timer = millis();
   }
 
   //---- Get surface temperature average with a FIFO buffer ---- //////////////////////////////// Something fuckin' wrong with the average
-  if (millis() - ts_avg_timer >= AVG_RESOLUTION) {
-
+  if (hasIntervalPassed(ts_avg_timer, AVG_RESOLUTION)) {
+    // if (millis() - ts_avg_timer >= AVG_RESOLUTION)
     if (buffer_len < BUFFER_SIZE) { //if buffer not full, we add the value
         buffer_sum += TS_F;
         buffer[buffer_len] = TS_F;
@@ -218,11 +217,10 @@ void loop() {
 
     mqtt.publishData(AVG_TS_TOPIC, temp_data.AvgTs_N);
     // logger.println("Temp data published");
-    ts_avg_timer = millis();
   }
 
   //---- Temperature MQTT publish ----///////////////////////////////////////////////////////////
-  if (millis() - get_temp_timer >= TIME_ACQ_DELAY) {
+  if (hasIntervalPassed(get_temp_timer, TIME_ACQ_DELAY)) {
     temp_data.Ta_N = TA_F;
     temp_data.Ts_N = TS_F;
     temp_data.Tc_N = TC_F;
@@ -252,12 +250,10 @@ void loop() {
 
     logger.printTime("Time:", now.hour(), now.minute(), now.day(), now.month());
     logger.printTime("Stage 2 Time:", Stage2_hour, Stage2_minute, Stage2_day, Stage2_month);
-
-    get_temp_timer = millis();
   }
-
+  
   //---- Time Stage ON/OFF and A & B MQTT Publish ----///////////////////////////////////////////////////////
-  if (millis() - A_B_timer >= 10000) {
+  if (hasIntervalPassed(A_B_timer, 10000)) {
     // STAGE 1
     mqtt.publishData(ACK_F1_ST1_ONTIME, N_st1.N_f1_st1_ontime);
     mqtt.publishData(ACK_F1_ST1_OFFTIME, N_st1.N_f1_st1_offtime);
@@ -277,28 +273,25 @@ void loop() {
     // A & B
     mqtt.publishData(ACK_A, N_SP.N_A);
     mqtt.publishData(ACK_B, N_SP.N_B);
-
-    A_B_timer = millis();
   }
 
   //---- PID Publishing ----//////////////////////////////////////////////////////////////////////
   // PID works only on STAGE 2
-  if (stage == 2 && STOP == 0) {
-    if (millis() - stg_2_pid_timer >= (TIME_ACQ_DELAY + 1)) {
+  if (stage == 2 && !STOP ) {
+    if (hasIntervalPassed(stg_2_pid_timer, TIME_ACQ_DELAY + 1)) {
       logger.println("Soft PID Actual Output is" + String(Output));
       Output_float = float(coefOutput);
       PID_data.PID_output = ((Output_float - 0) / (255 - 0)) * (100 - 0) + 0;
       logger.println("PID Output /100 is" + String(PID_data.PID_output));
 
       mqtt.publishData(PID_OUTPUT, PID_data.PID_output);
-      stg_2_pid_timer = millis();
     }
   }
 
   //---- START, DELAYED, STOP Button pressed ----////////////////////////////////////////////////
   // delayed start push button or digital button pressed
-  if (controller.readDigitalInput(DLY_S_IO) == 1 || N_d_start == 1) {
-    START1 = 1;
+  if (controller.readDigitalInput(DLY_S_IO) || N_d_start == 1) {
+    START1 = true;
     logger.println("Delayed Start Pressed");
     N_d_start = 0;
     F1_data.M_F1 = 2;
@@ -312,8 +305,8 @@ void loop() {
   }
 
   // start push button or digital button pressed
-  if (controller.readDigitalInput(START_IO) == 1 || N_start == 1) {
-    START2 = 1;
+  if (controller.readDigitalInput(START_IO) || N_start == 1) {
+    START2 = true;
     logger.println("Start Pressed");
     N_start = 0;
     F1_data.M_F1 = 2;
@@ -327,21 +320,25 @@ void loop() {
   }
 
   // stop push button or digital button pressed
-  if (controller.readDigitalInput(STOP_IO) == 1 || N_stop == 1) {
-    STOP = 1;
+  if (controller.readDigitalInput(STOP_IO) || N_stop == 1) {
+    STOP = true;
     logger.println("Stop Pressed");
     N_stop = 0;
   }
 
   //---- STOP ROUTINE ----///////////////////////////////////////////////////////////////////////
-  if (STOP == 1) stopRoutine();
+  if (STOP) stopRoutine();
   //---- RTC Timer ----//////////////////////////////////////////////////////////////////////////
 
-  if (((((now.hour() >= Stage2_hour && now.minute() >= Stage2_minute
-          && now.day() >= Stage2_day && now.month() >= Stage2_month)
-         && START1 == 1)
-        || START2 == 1)
-       && Stage2_started == 0 && Stage2_RTC_set == 0)) {
+  bool is_after_stage2_time = now.hour() >= Stage2_hour && now.minute() >= Stage2_minute;
+  bool is_after_stage_2_date = now.day() >= Stage2_day && now.month() >= Stage2_month;
+
+  bool is_after_stage_2_start = is_after_stage2_time && is_after_stage_2_date;
+
+  bool is_stage_2_triggered = (is_after_stage_2_start && START1) || START2;
+  bool is_stage_2_ready = !Stage2_started && !Stage2_RTC_set;
+
+  if (is_stage_2_triggered && is_stage_2_ready)  {
 
     START1 = MTR_State = C1_state = 0;
     controller.writeDigitalOutput(STAGE_1_IO, LOW);
@@ -365,8 +362,8 @@ void loop() {
   }
 
   //---- STAGE 1 ----////////////////////////////////////////////////////////////////////////////
-  if (START1 == 1 && Stage2_RTC_set == 0 && STOP == 0) {
-    if (C1_state == 0) {
+  if (START1 && !Stage2_RTC_set && !STOP) {
+    if (!C1_state) {
       controller.writeDigitalOutput(STAGE_1_IO, HIGH);  // Turn On the LED of Stage 1
       C1_state = 1;                    // State of Stage 1 turned ON
       logger.println("Stage 1 Started");
@@ -376,38 +373,35 @@ void loop() {
     }
 
     // Turn ON F1
-
-    if (MTR_State == 0 && (HIGH != controller.readDigitalInput(FAN_IO)) && (millis() - F1_timer >= (N_st1.N_f1_st1_offtime * MINS))) {  // MTR_State is the motor of F1
+    if (!MTR_State && !controller.readDigitalInput(FAN_IO) && hasIntervalPassed(F1_timer, N_st1.N_f1_st1_offtime , true)) {
       controller.writeDigitalOutput(FAN_IO, HIGH);                                                                                       // Turn ON F1
       logger.println("Stage 1 F1 On");
-      MTR_State = 1;
+      MTR_State = true;
       F1_data.M_F1 = 1;  // When M_F1 = 1 ==> ON
 
       mqtt.publishData(m_F1, F1_data.M_F1);
       logger.println("Stage 1 init M_F1 ON published ");
-      F1_timer = millis();
     }
 
     // Turn OFF F1 when the time set in the configuration is over
-    if (MTR_State == 1 && (LOW != controller.readDigitalInput(FAN_IO)) && (millis() - F1_timer >= (N_st1.N_f1_st1_ontime * MINS))) {
+    if (MTR_State && controller.readDigitalInput(FAN_IO) && hasIntervalPassed(F1_timer, N_st1.N_f1_st1_ontime , true)) {
       controller.writeDigitalOutput(FAN_IO, LOW);
       // controller.writeAnalogOutput(AIR_PWM, 0);
       logger.println("Stage 1 F1 Off");
-      MTR_State = 0;
+      MTR_State = false;
       F1_data.M_F1 = 2;  // When M_F1 = 2 ==> OFF
 
       mqtt.publishData(m_F1, F1_data.M_F1);
       logger.println("Stage 1 init M_F1 OFF published ");
-      F1_timer = millis();
     }
   }
 
   //---- STAGE 2 ----////////////////////////////////////////////////////////////////////////////
-  if (Stage2_RTC_set == 1 && Stage3_started == 0 && STOP == 0) {
-    if (C2_state == 0) {
+  if (Stage2_RTC_set && !Stage3_started && !STOP) {
+    if (!C2_state) {
       controller.writeDigitalOutput(STAGE_2_IO, HIGH);  // Turn On the LED of Stage 2
 
-      C2_state = 1;
+      C2_state = true;
       logger.println("Stage 2 Started");
       stage = 2;
       setStage(2);
@@ -416,19 +410,18 @@ void loop() {
     }
 
     // Turn ON F1 when time is over
-    if (MTR_State == 0 && (millis() - F1_stg_2_timmer >= (N_st2.N_f1_st2_offtime * MINS))) {
+    if (!MTR_State && hasIntervalPassed(F1_stg_2_timmer, N_st2.N_f1_st2_offtime, true)) {
       controller.writeDigitalOutput(FAN_IO, HIGH);  // Output of F1
       logger.println("Stage 2 F1 On");
-      MTR_State = 1;
+      MTR_State = true;
       F1_data.M_F1 = 1;  // When M_F1 = 1 ==> ON
 
       mqtt.publishData(m_F1, F1_data.M_F1);
       logger.println("stg2 F1 Start published ");
-      F1_stg_2_timmer = millis();
     }
 
     // Turn OFF F1 when time is over
-    if (MTR_State == 1 && (millis() - F1_stg_2_timmer >= (N_st2.N_f1_st2_ontime * MINS))) {
+    if (MTR_State && hasIntervalPassed(F1_stg_2_timmer, N_st2.N_f1_st2_ontime, true) ){
       controller.writeDigitalOutput(FAN_IO, LOW);
       logger.println("Stage 2 F1 Off");
       MTR_State = 0;
@@ -436,11 +429,10 @@ void loop() {
 
       mqtt.publishData(m_F1, F1_data.M_F1);
       logger.println("stg2 F1 stop published ");
-      F1_stg_2_timmer = millis();
     }
 
     // Turn ON S1 when time is over
-    if ((MTR_State == 1) && (S1_state == 0) && (millis() - S1_stg_2_timer >= (N_st2.N_s1_st2_offtime * MINS))) {
+    if (MTR_State && !S1_state && hasIntervalPassed(S1_stg_2_timer,N_st2.N_s1_st2_offtime, true)) {    
       controller.writeDigitalOutput(VALVE_IO, HIGH);  // Output of S1
       S1_state = 1;
       logger.println("Stage 2 S1 ON");
@@ -448,11 +440,10 @@ void loop() {
 
       mqtt.publishData(m_S1, S1_data.M_S1);
       logger.println("stg2 S1 start published");
-      S1_stg_2_timer = millis();
     }
 
     // Turn OFF S1 when time is over
-    if ((S1_state == 1 && (millis() - S1_stg_2_timer >= (N_st2.N_s1_st2_ontime * MINS))) || (MTR_State == 0)) {
+    if ((S1_state && hasIntervalPassed(S1_stg_2_timer,N_st2.N_s1_st2_ontime, true)) || !MTR_State ) {    
       controller.writeDigitalOutput(VALVE_IO, LOW);  // Output of S1
       S1_state = 0;
       logger.println("Stage 2 S1 OFF");
@@ -460,23 +451,20 @@ void loop() {
 
       mqtt.publishData(m_S1, S1_data.M_S1);
       logger.println("stg2 S1 stop published");
-
-      S1_stg_2_timer = millis();
     }
 
     // Calculate the Setpoint every 3 seconds in Function of Ta with the formula : Setpoint = A*(B-Ta)
-    if ((millis() - pid_computing_timer >= 3000)) {
+    if (hasIntervalPassed(pid_computing_timer, 3000)) {
       Setpoint = (-(N_SP.N_A * (temp_data.AvgTs_N)) + N_SP.N_B);  //use the average of the temperature over the x last minuites
       setpoint_data.PID_setpoint = float(Setpoint);
 
       mqtt.publishData(SETPOINT, setpoint_data.PID_setpoint);
 
       logger.println("Setpoint published");
-      pid_computing_timer = millis();
     }
 
     // Activate the PID when F1 ON
-    if (MTR_State == 1 && (millis() - turn_on_pid_timer >= 3000)) {
+    if (MTR_State && hasIntervalPassed(turn_on_pid_timer, 3000)) {
       PIDinput = TA_F;
       coefOutput = (coefPID * Output) / 100;  // Transform the Output of the PID to the desired max value
       logger.println(String(coefOutput));
@@ -485,11 +473,10 @@ void loop() {
       controller.writeAnalogOutput(AIR_PWM, Output);
       Converted_Output = ((Output - 0) / (255 - 0)) * (10000 - 0) + 0;
       logger.println("Converted_Output is " + String(Converted_Output));
-      turn_on_pid_timer = millis();
     }
 
     // Put the PID at 0 when F1 OFF
-    if (MTR_State == 0 && (millis() - turn_on_pid_timer >= 3000)) {
+    if (!MTR_State && hasIntervalPassed(turn_on_pid_timer, 3000)) {
       //Setpoint = 0;
       PIDinput = 0;
       Output = 0;
@@ -498,14 +485,13 @@ void loop() {
       controller.writeAnalogOutput(AIR_PWM, Output);
       Converted_Output = ((Output - 0) / (255 - 0)) * (10000 - 0) + 0;
       logger.println("Converted_Output is " + String(Converted_Output));
-      turn_off_pid_timer = millis();
     }
   }
 
   //---- STAGE 3 ----////////////////////////////////////////////////////////////////////////////
   // Initialisation Stage3 (reset all the other stages to 0)
-  if (TS_F >= N_tset.N_ts_set && TC_F >= N_tset.N_tc_set && Stage3_started == 0 && Stage2_started == 1) {
-    START1 = START2 = Stage2_RTC_set = MTR_State = 0;
+  if (TS_F >= N_tset.N_ts_set && TC_F >= N_tset.N_tc_set && !Stage3_started && Stage2_started) {
+    START1 = START2 = Stage2_RTC_set = MTR_State = false;
 
     // Turn All Output OFF
     controller.writeAnalogOutput(AIR_PWM, 0);
@@ -534,9 +520,9 @@ void loop() {
   }
 
   // Stage 3
-  if (Stage3_started == 1 && Stage2_started == 1 && STOP == 0) {
+  if (Stage3_started && Stage2_started && !STOP) {
     // State of Stage 3 turned to 1
-    if (C3_state == 0) {
+    if (!C3_state) {
       controller.writeDigitalOutput(STAGE_3_IO, HIGH);  // Turn ON the LED of Stage 3
 
       C3_state = 1;
@@ -547,7 +533,7 @@ void loop() {
     }
 
     // Turn ON F1 when time is over
-    if (MTR_State == 0 && (millis() - F1_stg_3_timer >= (N_st3.N_f1_st3_offtime * MINS))) {
+    if(MTR_State && hasIntervalPassed(F1_stg_3_timer, N_st3.N_f1_st3_offtime, true)) {
       controller.writeDigitalOutput(FAN_IO, HIGH);
       // controller.writeAnalogOutput(AIR_PWM, duty_cycle);
       logger.println("Stage 3 F1 On");
@@ -556,11 +542,10 @@ void loop() {
 
       mqtt.publishData(m_F1, F1_data.M_F1);
       logger.println("stage 3 F1 start published ");
-      F1_stg_3_timer = millis();
     }
 
     // Turn OFF F1 when time is over
-    if (MTR_State == 1 && (millis() - F1_stg_3_timer >= (N_st3.N_f1_st3_ontime * MINS))) {
+    if(MTR_State && hasIntervalPassed(F1_stg_3_timer, N_st3.N_f1_st3_ontime, true)) {
       controller.writeDigitalOutput(FAN_IO, LOW);
       // controller.writeAnalogOutput(AIR_PWM, 0);
       logger.println("Stage 3 F1 Off");
@@ -569,10 +554,9 @@ void loop() {
 
       mqtt.publishData(m_F1, F1_data.M_F1);
       logger.println("stage 3 F1 stop published ");
-      F1_stg_3_timer = millis();
     }
 
-    if (S1_state == 0 && (millis() - S1_stg_3_timer >= (N_st3.N_s1_st3_offtime * MINS))) {
+    if (!S1_state && hasIntervalPassed(S1_stg_3_timer, N_st3.N_s1_st3_offtime, true)) {
       controller.writeDigitalOutput(VALVE_IO, HIGH);
       S1_state = 1;
       logger.println("Stage 3 S1 ON");
@@ -580,10 +564,9 @@ void loop() {
 
       mqtt.publishData(m_S1, S1_data.M_S1);
       logger.println("stg3 S1 start published");
-      S1_stg_3_timer = millis();
     }
 
-    if (S1_state == 1 && (millis() - S1_stg_3_timer >= (N_st3.N_s1_st3_ontime * MINS))) {
+    if (S1_state && hasIntervalPassed(S1_stg_3_timer, N_st3.N_s1_st3_ontime, true)) {
       controller.writeDigitalOutput(VALVE_IO, LOW);
       S1_state = 0;
       logger.println("Stage 3 S1 OFF with value of S1 ");
@@ -591,7 +574,6 @@ void loop() {
 
       mqtt.publishData(m_S1, S1_data.M_S1);
       logger.println("stg3 S1 stop published");
-      S1_stg_3_timer = millis();
     }
   }
 }
@@ -601,22 +583,22 @@ void callback(char *topic, byte *payload, unsigned int len) {
   logger.println("Message arrived [" + String(topic) + "]");
 
   // Delayed start timing
-  if (strcmp(topic, sub_hours) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_hours) && noButtonPressed()) {
     Stage2_hour = responseToFloat(payload, len);
     logger.println("Stage 2 Hours set to: " + String(Stage2_minute));
   }
 
-  if (strcmp(topic, sub_minutes) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_minutes) && noButtonPressed()) {
     Stage2_minute = responseToFloat(payload, len);
     logger.println("Stage 2 Minutes set to: " + String(Stage2_minute));
   }
 
-  if (strcmp(topic, sub_day) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_day) && noButtonPressed()) {
     Stage2_day = responseToFloat(payload, len);
     logger.println("Stage 2 Day set to: " + String(Stage2_day));
   }
 
-  if (strcmp(topic, sub_month) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_month) && noButtonPressed()) {
     Stage2_month = responseToFloat(payload, len);
     logger.println("Stage 2 Month set to: " + String(N_rtc.N_month));
   }
@@ -624,70 +606,70 @@ void callback(char *topic, byte *payload, unsigned int len) {
   bool update_default_parameters = false;
 
   //F1 stg1 on/off time
-  if (strcmp(topic, sub_f1_st1_ontime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_f1_st1_ontime) && noButtonPressed()) {
     N_st1.N_f1_st1_ontime = responseToFloat(payload, len);
     logger.println("F1 Stage 1 on time set to: " + String(N_st1.N_f1_st1_ontime) + " MINS");
     update_default_parameters = true;
   }
 
-  if (strcmp(topic, sub_f1_st1_offtime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_f1_st1_offtime) && noButtonPressed()) {
     N_st1.N_f1_st1_offtime = responseToFloat(payload, len);
     logger.println("F1 Stage 1 off time set to: " + String(N_st1.N_f1_st1_offtime) + " MINS");
     update_default_parameters = true;
   }
 
   // F1 and S1 STAGE 2 on/off time
-  if (strcmp(topic, sub_f1_st2_ontime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_f1_st2_ontime) && noButtonPressed()) {
     N_st2.N_f1_st2_ontime = responseToFloat(payload, len);
     logger.println("F1 Stage 2 on time set to: " + String(N_st2.N_f1_st2_ontime) + " MINS");
     update_default_parameters = true;
   }
 
-  if (strcmp(topic, sub_f1_st2_offtime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_f1_st2_offtime) && noButtonPressed()) {
     N_st2.N_f1_st2_offtime = responseToFloat(payload, len);
     logger.println("F1 Stage 2 off time set to: " + String(N_st2.N_f1_st2_offtime) + " MINS");
     update_default_parameters = true;
   }
 
-  if (strcmp(topic, sub_s1_st2_ontime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_s1_st2_ontime) && noButtonPressed()) {
     N_st2.N_s1_st2_ontime = responseToFloat(payload, len);
     logger.println("S1 Stage 2 on time set to: " + String(N_st2.N_s1_st2_ontime) + " MINS");
     update_default_parameters = true;
   }
 
-  if (strcmp(topic, sub_s1_st2_offtime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_s1_st2_offtime) && noButtonPressed()) {
     N_st2.N_s1_st2_offtime = responseToFloat(payload, len);
     logger.println("S1 Stage 2 off time set to: " + String(N_st2.N_s1_st2_offtime) + " MINS");
     update_default_parameters = true;
   }
 
   // F1 and S1 STAGE 3 on/off time
-  if (strcmp(topic, sub_f1_st3_ontime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_f1_st3_ontime) && noButtonPressed()) {
     N_st3.N_f1_st3_ontime = responseToFloat(payload, len);
     logger.println("F1 Stage 3 on time set to: " + String(N_st3.N_f1_st3_ontime) + " MINS");
     update_default_parameters = true;
   }
 
-  if (strcmp(topic, sub_f1_st3_offtime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_f1_st3_offtime) && noButtonPressed()) {
     N_st3.N_f1_st3_offtime = responseToFloat(payload, len);
     logger.println("F1 Stage 3 off time set to: " + String(N_st3.N_f1_st3_offtime) + " MINS");
     update_default_parameters = true;
   }
 
-  if (strcmp(topic, sub_s1_st3_ontime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_s1_st3_ontime) && noButtonPressed()) {
     N_st3.N_s1_st3_ontime = responseToFloat(payload, len);
     logger.println("S1 Stage 3 on time set to: " + String(N_st3.N_s1_st3_ontime) + " MINS");
     update_default_parameters = true;
   }
 
-  if (strcmp(topic, sub_s1_st3_offtime) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_s1_st3_offtime) && noButtonPressed()) {
     N_st3.N_s1_st3_offtime = responseToFloat(payload, len);
     logger.println("S1 Stage 3 off time set to: " + String(N_st3.N_s1_st3_offtime) + " MINS");
     update_default_parameters = true;
   }
 
   // Sub A and Sub B value update
-  if (strcmp(topic, sub_A) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_A) && noButtonPressed()) {
     N_SP.N_A = responseToFloat(payload, len);
     // N_SP.N_A = atoi((char *)payload);
     logger.println("A set to: " + String(N_SP.N_A));
@@ -695,7 +677,7 @@ void callback(char *topic, byte *payload, unsigned int len) {
     R_A = 1;
   }
 
-  if (strcmp(topic, sub_B) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_B) && noButtonPressed()) {
     N_SP.N_B = responseToFloat(payload, len);
     logger.println("B set to: " + String(N_SP.N_B));
     update_default_parameters = true;
@@ -703,43 +685,43 @@ void callback(char *topic, byte *payload, unsigned int len) {
   }
 
   // PID update
-  if (strcmp(topic, sub_P) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_P) && noButtonPressed()) {
     Kp = responseToFloat(payload, len);
     logger.println("P set to: " + String(Kp));
     R_P = 1;
   }
 
-  if (strcmp(topic, sub_I) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_I) && noButtonPressed()) {
     Ki = responseToFloat(payload, len);
     logger.println("I set to: " + String(Ki));
     R_I = 1;
   }
 
-  if (strcmp(topic, sub_D) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_D) && noButtonPressed()) {
     Kd = responseToFloat(payload, len);
     logger.println("D set to: " + String(Kd));
     R_D = 1;
   }
 
-  if (R_P == 1 && R_I == 1 && R_D == 1 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (R_P == 1 && R_I == 1 && R_D == 1 && noButtonPressed()) {
     air_in_feed_PID.SetTunings(Kp, Ki, Kd);
     logger.println("New PID parameter updated");
     R_P = R_I = R_D = 0;
   }
 
-  if (strcmp(topic, sub_coefPID) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_coefPID) && noButtonPressed()) {
     coefPID = responseToInt(payload, len);
     logger.print("coef PID : " + String(coefPID));
   }
 
   // Target temperature Ts & Tc update
-  if (strcmp(topic, sub_ts_set) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_ts_set) && noButtonPressed()) {
     N_tset.N_ts_set = responseToFloat(payload, len);
     logger.println("Ts Condition set to: " + String(N_tset.N_ts_set));
     update_default_parameters = true;
   }
 
-  if (strcmp(topic, sub_tc_set) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_tc_set) && noButtonPressed()) {
     N_tset.N_tc_set = responseToFloat(payload, len);
     // Tc_cond = N_tset->N_tc_set;
     logger.println("Tc Condition set to: " + String(N_tset.N_tc_set));
@@ -747,25 +729,25 @@ void callback(char *topic, byte *payload, unsigned int len) {
   }
 
   // START
-  if (strcmp(topic, sub_start) == 0 && START1 == 0 && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_start) && noButtonPressed()) {
     N_start = responseToInt(payload, len);
     logger.println("START BUTTON PRESSED ON NODE RED" + String(N_start));
   }
 
   // D_START
-  if ((strcmp(topic, sub_d_start) == 0) && START2 == 0 && STOP == 0) {
+  if (mqtt.isTopicEqual(topic, sub_d_start) && START2 == 0 && STOP == 0) {
     N_d_start = responseToInt(payload, len);
     logger.println("d_start BUTTON PRESSED ON NODE RED" + String(N_d_start));
   }
 
   // STOP
-  if (strcmp(topic, sub_stop) == 0) {
+  if (mqtt.isTopicEqual(topic, sub_stop)) {
     N_stop = responseToInt(payload, len);
     logger.println("stop BUTTON PRESSED ON NODE RED" + String(N_stop));
   }
 
   // Choose TS
-  if (strcmp(topic, sub_chooseTs) == 0) {
+  if (mqtt.isTopicEqual(topic, sub_chooseTs)) {
     N_chooseTs = responseToInt(payload, len);
     logger.println("Ts is now IR" + String(N_chooseTs));
   }
@@ -830,7 +812,7 @@ void updateDefaultParameters(){
 
 //// Stop button pressed ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void stopRoutine() {
-  if (stop_temp1 == 0) {
+  if (!stop_temp1) {
     logger.println("PROCESS STOP INITIATED");
     controller.writeDigitalOutput(STAGE_1_IO, LOW);
     controller.writeDigitalOutput(STAGE_2_IO, LOW);
@@ -843,7 +825,7 @@ void stopRoutine() {
     stage = 0;
     Output = 0;
     coefOutput = 0;
-    stop_temp1 = 1;
+    stop_temp1 = true;
 
     F1_data.M_F1 = S1_data.M_S1 = 2;
 
@@ -853,14 +835,14 @@ void stopRoutine() {
     logger.println("Stage 0 Status Send packet ");
   }
 
-  if (stop_temp2 == 0) {
-    MTR_State = C1_state = C2_state = C3_state = S1_state = START1 = START2 = Stage2_started = Stage3_started = Stage2_RTC_set = 0;
-    stop_temp2 = 1;
+  if (!stop_temp2) {
+    MTR_State = C1_state = C2_state = C3_state = S1_state = START1 = START2 = Stage2_started = Stage3_started = Stage2_RTC_set = false;
+    stop_temp2 = true;
   }
 
-  if (stop_temp2 == 1) {
+  if (stop_temp2) {
     logger.println("PROCESS STOPPED");
-    stop_temp1 = stop_temp2 = STOP = 0;
+    stop_temp1 = stop_temp2 = STOP = false;
   }
 }
 
@@ -896,8 +878,11 @@ bool validateTemperature(float temp, uint8_t type) {
   return false;
 }
 
+// THIS SHOULD BE ALSO IN THE MQTT
+
 void sendTemperaturaAlert(float temp, String sensor){
-  // Not implemented yet!
+  const String msg = "{\"temp\":" + String(temp) + ", \"sensor\":" + sensor + "}";
+  mqtt.publishData(SPOILED_SENSOR, msg);
 }
 
 // THIS SHOULD BE ALSO IN THE CONTROLLER
@@ -917,7 +902,7 @@ void setStage(int Stage) {
   mqtt.publishData(STAGE, Stage);
 }
 
-// THIS SHOULD BE ALSO IN THE OTHER PLACE
+// THIS SHOULD BE ALSO IN THE OTHER PLACE (MQTT maybe )
 
 float responseToFloat(byte *value, size_t len) {
   String string_builder;
@@ -988,30 +973,30 @@ void setUpDefaultParameters(){
   N_tset.N_tc_set = doc["tset"]["tcSet"];
 
   // Imprime los valores de las variables
-  logger.println("Valores de las variables:");
-  logger.printValue("N_st1.N_f1_st1_ontime: ",  String(N_st1.N_f1_st1_ontime)); 
-  logger.printValue("N_st1.N_f1_st1_offtime: ", String(N_st1.N_f1_st1_offtime));
+  // logger.println("Valores de las variables:");
+  // logger.printValue("N_st1.N_f1_st1_ontime: ",  String(N_st1.N_f1_st1_ontime)); 
+  // logger.printValue("N_st1.N_f1_st1_offtime: ", String(N_st1.N_f1_st1_offtime));
   
-  logger.printValue("N_st2.N_f1_st2_ontime: ", String(N_st2.N_f1_st2_ontime));
-  logger.printValue("N_st2.N_f1_st2_offtime: ", String(N_st2.N_f1_st2_offtime));
-  logger.printValue("N_st2.N_s1_st2_ontime: ", String(N_st2.N_s1_st2_ontime));
-  logger.printValue("N_st2.N_s1_st2_offtime: ", String(N_st2.N_s1_st2_offtime));
+  // logger.printValue("N_st2.N_f1_st2_ontime: ", String(N_st2.N_f1_st2_ontime));
+  // logger.printValue("N_st2.N_f1_st2_offtime: ", String(N_st2.N_f1_st2_offtime));
+  // logger.printValue("N_st2.N_s1_st2_ontime: ", String(N_st2.N_s1_st2_ontime));
+  // logger.printValue("N_st2.N_s1_st2_offtime: ", String(N_st2.N_s1_st2_offtime));
 
-  logger.printValue("N_st3.N_f1_st3_ontime: ", String(N_st3.N_f1_st3_ontime));
-  logger.printValue("N_st3.N_f1_st3_offtime: ", String(N_st3.N_f1_st3_offtime));
-  logger.printValue("N_st3.N_s1_st3_ontime: ", String(N_st3.N_s1_st3_ontime));
-  logger.printValue("N_st3.N_s1_st3_offtime: ", String(N_st3.N_s1_st3_offtime));
+  // logger.printValue("N_st3.N_f1_st3_ontime: ", String(N_st3.N_f1_st3_ontime));
+  // logger.printValue("N_st3.N_f1_st3_offtime: ", String(N_st3.N_f1_st3_offtime));
+  // logger.printValue("N_st3.N_s1_st3_ontime: ", String(N_st3.N_s1_st3_ontime));
+  // logger.printValue("N_st3.N_s1_st3_offtime: ", String(N_st3.N_s1_st3_offtime));
 
-  logger.printValue("N_SP.N_A: ", String( N_SP.N_A));
-  logger.printValue("N_SP.N_B: ", String( N_SP.N_B));
+  // logger.printValue("N_SP.N_A: ", String( N_SP.N_A));
+  // logger.printValue("N_SP.N_B: ", String( N_SP.N_B));
 
-  logger.printValue("N_tset.N_ts_set: ", String( N_tset.N_ts_set));
-  logger.printValue("N_tset.N_tc_set: ", String( N_tset.N_tc_set));
+  // logger.printValue("N_tset.N_ts_set: ", String( N_tset.N_ts_set));
+  // logger.printValue("N_tset.N_tc_set: ", String( N_tset.N_tc_set));
 }
 
 // THIS SHOULD BE ALSO IN THE OTHER PLACE
 
-void runConfigFile(char* ssid, char* password, char* hostname, char* ip_address, uint16_t* port, char* username) {
+void runConfigFile(char* ssid, char* password, char* hostname, char* ip_address, uint16_t* port, char* username, char* prefix_topic) {
   // Iniciar SPIFFS
   if (!SPIFFS.begin(true)) {
     logger.println("An error has occurred while mounting SPIFFS");
@@ -1045,6 +1030,21 @@ void runConfigFile(char* ssid, char* password, char* hostname, char* ip_address,
   if (doc.containsKey("IP_ADDRESS")) strlcpy(ip_address, doc["IP_ADDRESS"], IP_ADDRESS_SIZE);
   if (doc.containsKey("PORT")) *port = doc["PORT"];
   if (doc.containsKey("USERNAME")) strlcpy(username, doc["USERNAME"], MQTT_USERNAME_SIZE);
-
+  if (doc.containsKey("TOPIC")) strlcpy(prefix_topic, doc["TOPIC"], MQTT_USERNAME_SIZE);
 }
+
+bool noButtonPressed(){
+  return START1 == 0 && START2 == 0 && STOP == 0;
+}
+
+bool hasIntervalPassed(uint32_t &previousMillis, uint32_t interval, bool to_min) {
+  if(to_min) interval *= 60000;
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis; // Restablecer el temporizador después de que ha pasado el intervalo
+    return true;
+  }
+  return false; 
+}
+
 

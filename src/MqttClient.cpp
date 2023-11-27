@@ -7,8 +7,14 @@ PubSubClient mqttClient(esp32Client);
 // void subscribeReceive(char* topic, byte* payload, unsigned int length);
 
 void MqttClient::connect(const char *domain, uint16_t port, const char *username) {
+  //storing the username, port and domain in a global variable
   strncpy(mqtt_username, username, sizeof(mqtt_username) - 1);
   mqtt_username[sizeof(mqtt_username) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
+
+  strncpy(mqtt_domain, domain, sizeof(mqtt_domain) - 1);
+  mqtt_domain[sizeof(mqtt_domain) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
+
+  mqtt_port = port;
 
   mqttClient.setServer(domain, port);
   if (mqttClient.connect(mqtt_username)) {
@@ -24,19 +30,26 @@ bool MqttClient::isServiceAvailable() {
   return !no_service_available;
 }
 
+
 void MqttClient::reconnect() {
   while (!mqttClient.connected()) {
+    mqttClient.flush();
+    mqttClient.disconnect();
+    mqttClient.setServer(mqtt_domain, mqtt_port);
     logger.print("Attempting MQTT connection...");
     if (mqttClient.connect(mqtt_username)) {
       logger.println("connected");
       subscribeRoutine();
     } else {
-      logger.print("failed, rc=");
       logger.printValue("failed, rc=",String(mqttClient.state()));
       logger.println(" try again in 5 seconds");
       delay(5000);
     }
   }
+}
+
+bool MqttClient::isTopicEqual(const char* a, const char* b){
+  return strcmp(a, b) == 0;
 }
 
 bool MqttClient::isConnected() {
@@ -147,6 +160,10 @@ String MqttClient::getIsoTimestamp() {
   // Implementa la obtención del timestamp aquí.
   // Devuelve el timestamp en formato ISO 8601 como String.
   return "2023-11-13T12:49:52.737+08:00";
+}
+
+String MqttClient::getTopic(const char* topic){
+  return prefix + topic;
 }
 
 // Función de ejemplo de cómo podrías llamar a publishData.
