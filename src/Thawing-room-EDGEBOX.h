@@ -39,6 +39,8 @@ bool noButtonPressed();
 void updateTemperature();
 void aknowledgementRoutine();
 void setStage(SystemState Stage);
+bool shouldStage2Start(DateTime &current_date);
+bool shouldStage3Start(DateTime &current_date);
 void publishTemperatures(DateTime &current_date);
 void sendTemperaturaAlert(float temp, String sensor);
 void callback(char *topic, byte *payload, unsigned int len);  //callback function for mqtt, see definition after loop

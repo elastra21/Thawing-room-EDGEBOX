@@ -151,24 +151,16 @@ void loop() {
   if (hasIntervalPassed(A_B_timer, 10000)) aknowledgementRoutine();
   if (currentState == STAGE2 && !STOP ) publishPID();  // PID works only on STAGE 2
 
-  //---- STAGE 2 conditions ----////////////////////////////////////////////////////////////////////////////
-  bool is_after_stage2_time = current_date.hour() >= stage2_hour && current_date.minute() >= stage2_minute;
-  bool is_after_stage_2_date = current_date.day() >= stage2_day && current_date.month() >= stage2_month;
-  bool is_after_stage_2_start = is_after_stage2_time && is_after_stage_2_date;
-  bool is_stage_2_triggered = (is_after_stage_2_start && START1) || START2;
-  bool is_stage_2_ready = !stage2_started && !stage2_rtc_set;
 
-  // ---- STAGE 3 conditions ----////////////////////////////////////////////////////////////////////////////
-  bool isReadyForStage3 = TS_F >= temp_set.ts && TC_F >= temp_set.tc;
-  bool isStage3NotStarted = !stage3_started;
-  bool isStage2Started = stage2_started;
+  const bool start_stage2 = shouldStage2Start(current_date);
+  const bool start_stage3 = shouldStage3Start(current_date);
 
   handleInputs();
   if (STOP) stopRoutine();
 
   // ---- MAIN PROCESS ----////////////////////////////////////////////////////////////////////////////
 
-  if (is_stage_2_triggered && is_stage_2_ready)  {
+  if (start_stage2)  {
     START1 = mtr_state = false;
 
     controller.writeDigitalOutput(STAGE_1_IO, LOW);
@@ -215,7 +207,7 @@ void loop() {
   }
 
   //---- STAGE 3 ----////////////////////////////////////////////////////////////////////////////
-  if (isReadyForStage3 && isStage3NotStarted && isStage2Started) {
+  if (start_stage3) {
     START1 = START2 = stage2_rtc_set = mtr_state = false;
 
     // Turn All Output OFF
@@ -255,12 +247,24 @@ void loop() {
   }
 }
 
-// void handleIdleState() {
-//     // Check conditions to start Stage 1
-//     if (/* condition to start Stage 1 */) {
-//         currentState = STAGE1;
-//     }
-// }
+
+bool shouldStage2Start(DateTime &current_date) {
+  bool is_after_stage2_time = current_date.hour() >= stage2_hour && current_date.minute() >= stage2_minute;
+  bool is_after_stage_2_date = current_date.day() >= stage2_day && current_date.month() >= stage2_month;
+  bool is_after_stage_2_start = is_after_stage2_time && is_after_stage_2_date;
+  bool is_stage_2_triggered = (is_after_stage_2_start && START1) || START2;
+  bool is_stage_2_ready = !stage2_started && !stage2_rtc_set;
+
+  return is_stage_2_triggered && is_stage_2_ready;
+}
+
+bool shouldStage3Start(DateTime &current_date) {
+  bool isReadyForStage3 = TS_F >= temp_set.ts && TC_F >= temp_set.tc;
+  bool isStage3NotStarted = !stage3_started;
+  bool isStage2Started = stage2_started;
+
+  return isReadyForStage3 && isStage3NotStarted && isStage2Started;
+}
 
 void handleInputs() {
   //---- START, DELAYED, STOP Button pressed ----////////////////////////////////////////////////
