@@ -127,6 +127,19 @@ void WIFI::setUpWebServer(bool brigeSerial){
   server.begin();
 }
 
+// void WIFI::startMDNS(){
+//   if (!MDNS.begin("tap-o-meter")) {
+//         Serial.println("Error setting up MDNS responder!");
+//         while(1) vTaskDelay(1000 / portTICK_PERIOD_MS);
+//     }
+// }
+
+String WIFI::getIP(){
+  String ip =  MDNS.queryHost("beer-control").toString();
+  Serial.println(ip);
+  return ip;
+}
+
 void WIFI::startAPMode(){
   Serial.println("\nFailed to connect to WiFi. Starting AP mode...");
   WiFi.softAP(hostname, NULL);  // Start the AP without a password

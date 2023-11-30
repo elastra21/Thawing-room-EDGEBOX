@@ -79,8 +79,10 @@ class MqttClient {
     bool refreshMQTTStatus();
     bool isServiceAvailable();
     bool getConnectionStatus();
+    int responseToInt(byte *value, size_t len);
     void publishData(String topic, double value);
     void publishData(String topic, String value);
+    float responseToFloat(byte *value, size_t len);
     bool isTopicEqual(const char* a, const char* b);
     void setCallback(std::function<void (char *, uint8_t *, unsigned int)> callback);
     void publishEcava(const String* topics, const String* values, int arraySize, const char* mqttTopic);

@@ -31,6 +31,7 @@ class WIFI {
   public:
     void init(const char* ssid, const char* password, const char* hostname);
     void loopOTA();
+    String getIP();
     void setUpOTA();
     void reconnect();
     bool isConnected();

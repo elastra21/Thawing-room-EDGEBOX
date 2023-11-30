@@ -1,34 +1,50 @@
 #ifndef THAWING_ROOM_H
 #define THAWING_ROOM_H
 
-#include <FS.h>
 #include <Wire.h>
-#include <SPIFFS.h>
 #include <PID_v1.h>
 // #include "secrets.h"
 #include <Arduino.h>
 #include "MqttClient.h"
-#include <ArduinoJson.h>
 #include "hardware/logger.h"
 #include "hardware/config.h"
 #include "hardware/Controller.h"
 
+//------------ structure definitions an flags -------------------------------------------------------->
+
+// temperature measures
+typedef struct { float ta; float ts; float tc; float ti; float avg_ts; } data_s;
+
+
+enum SystemState {
+    IDLE,
+    STAGE1,
+    STAGE2,
+    STAGE3,
+    ERROR
+};
+
+enum SensorProbes{TA_TYPE, TS_TYPE, TC_TYPE};
+
 //---- Function declaration ----/////////////////////////////////////////////////////////////////////////////
 // float getIRTemp();
+void getTsAvg();
+void publishPID();
 void stopRoutine();
+void handleStage1();
+void handleStage2();
+void handleStage3();
+void handleInputs();
 bool noButtonPressed();
 void updateTemperature();
-void setStage(int Stage);
-void setUpDefaultParameters();
-void updateDefaultParameters();
-String addressToString(uint8_t *address);
-int responseToInt(byte *value, size_t len);
-float responseToFloat(byte *value, size_t len);
-bool validateTemperature(float temp, uint8_t type);
+void aknowledgementRoutine();
+void setStage(SystemState Stage);
+void publishTemperatures(DateTime &current_date);
 void sendTemperaturaAlert(float temp, String sensor);
 void callback(char *topic, byte *payload, unsigned int len);  //callback function for mqtt, see definition after loop
+void publishStateChange(const char* topic, int state, const String& message);
 bool hasIntervalPassed(uint32_t &previousMillis, uint32_t interval, bool to_min = false);
-void runConfigFile(char* ssid, char* password, char* hostname, char* ip_address, uint16_t* port, char* username, char* prefix_topic);
+bool isValidTemperature(float temp, float minTemp, float maxTemp, const String& sensorName);
 
 
 //---- timing settings -----////////////////////////////////////////////////////////////////////////////////
@@ -49,46 +65,5 @@ void runConfigFile(char* ssid, char* password, char* hostname, char* ip_address,
 #define TC_MAX 5
 #define TC_DEF -1
 
-//------------ structure definitions an flags -------------------------------------------------------->
-// Fan F1 and sprinkler S1 value
-typedef struct { float M_F1; }                            data_F1;
-
-typedef struct { float M_F2; }                            data_F2;
-
-typedef struct { float M_S1; }                            data_S1;
-
-//stage
-typedef struct { float stage; }                           data_stage;
-
-// A and B variables
-typedef struct { float N_A; float N_B; }                  data_SP;
-
-// PID variables
-typedef struct { float PID_output; }                      data_PIDO;
-
-typedef struct { float PID_setpoint; }                    data_setpoint;
-
-typedef struct { float N_P; float N_I; float N_D; }       data_PID;
-
-// Ts and Tc target value
-typedef struct { float N_ts_set; float N_tc_set; }        data_tset;
-
-// fan (F1) STAGE 1 on and off time 
-typedef struct { float N_f1_st1_ontime; float N_f1_st1_offtime; }                 data_st1;
-
-// RTC
-typedef struct { float N_hours; float N_minutes; float N_day; float N_month; }    data_rtc;
-
-// temperature measures
-typedef struct { float Ta_N; float Ts_N; float Tc_N; float Ti_N; float AvgTs_N; } data_s;
-
-
-// fan (F1) and sprinklers (S1) STAGE 2 on and off time 
-typedef struct { float N_f1_st2_ontime; float N_f1_st2_offtime; float N_s1_st2_ontime; float N_s1_st2_offtime; } data_st2;
-
-// fan (F1) and sprinklers (S1) STAGE 3 on and off time 
-typedef struct { float N_f1_st3_ontime; float N_f1_st3_offtime; float N_s1_st3_ontime; float N_s1_st3_offtime; } data_st3;
-
-enum SensorProbes{TA_TYPE, TS_TYPE, TC_TYPE};
 
 #endif

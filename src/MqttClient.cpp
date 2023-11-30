@@ -57,9 +57,9 @@ bool MqttClient::isConnected() {
 }
 
 void MqttClient::loop() {
-  if (!mqttClient.connected()) {
-    reconnect();
-  }
+  if (!isServiceAvailable()) return;
+  if (!mqttClient.connected()) reconnect();
+  
   delay(100);
   mqttClient.loop();
 }
@@ -131,9 +131,6 @@ bool MqttClient::getConnectionStatus() {
   return last_connection_state;
 }
 
-
-
-
 // Función que construye el JSON y lo publica.
 void MqttClient::publishEcava(const String* topics, const String* values, int arraySize, const char* mqttTopic) {
     StaticJsonDocument<512> jsonDoc; // Adjust the size as necessary
@@ -172,4 +169,16 @@ void MqttClient::exampleCall() {
   const String values[] = {"23.5", "22.5", "21.5"};
 
   publishEcava(topics, values, 3, "xda.json://Fish.dxscript/Fish/onchange");
+}
+
+float MqttClient::responseToFloat(byte *value, size_t len) {
+  String string_builder;
+  for (int i = 0; i < len; i++) string_builder += (char)value[i];
+  return string_builder.toFloat();
+}
+
+int MqttClient::responseToInt(byte *value, size_t len) {
+  String string_builder;
+  for (int i = 0; i < len; i++) string_builder += (char)value[i];
+  return string_builder.toInt();
 }

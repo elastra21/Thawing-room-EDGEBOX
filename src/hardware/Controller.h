@@ -3,15 +3,18 @@
 
 // #include "WS_V2.h"
 #include <EdgeBox_ESP_100.h>
+#include <FS.h>
 #include "WIFI.h"
 #include <Wire.h>
 #include "config.h"
 #include "Logger.h"
+#include <SPIFFS.h>
 #include <RTClib.h>
 #include <WiFiUdp.h>
 #include <Arduino.h>
 #include <OneWire.h>
 #include <NTPClient.h>
+#include <ArduinoJson.h>
 #include <Adafruit_ADS1X15.h>
 #include <DallasTemperature.h>
 
@@ -24,6 +27,19 @@
 
 // #define TIME_ZONE_OFFSET_HRS            (-7)  /* Ensenada, México */
 #define TIME_ZONE_OFFSET_HRS            (+8)   /* Taiping, Malaysia */
+
+typedef struct {
+    float fanOnTime;
+    float fanOffTime;
+    float sprinklerOnTime;  // Optional, can be 0 or not used for Stage 1
+    float sprinklerOffTime; // Optional, can be 0 or not used for Stage 1
+} stage_parameters;
+
+// A and B variables
+typedef struct { float A; float B; }                  room_parameters;
+
+// Ts and Tc target value
+typedef struct { float ts; float tc; }        data_tset;
 
 class Controller {
 private:
@@ -50,6 +66,7 @@ public:
     
     void init();
     void setUpRTC();
+    void WiFiLoop();
     bool isRTCConnected();
     DateTime getDateTime();
     void setUpOneWireProbes();
@@ -67,8 +84,12 @@ public:
     bool refreshWiFiStatus();
     bool getConnectionStatus();
     // Puto el que lo lea
+    
     void connectToWiFi(bool web_server, bool web_serial, bool OTA); 
     void setUpWiFi(const char* ssid, const char* password, const char* hostname);
+    void runConfigFile(char* ssid, char* password, char* hostname, char* ip_address, uint16_t* port, char* username, char* prefix_topic);
+    void setUpDefaultParameters(stage_parameters &stage1_params, stage_parameters &stage2_params, stage_parameters &stage3_params, room_parameters &room, data_tset &N_tset);
+    void updateDefaultParameters(stage_parameters &stage1_params, stage_parameters &stage2_params, stage_parameters &stage3_params, room_parameters &room, data_tset &N_tset);
 
 };
 

@@ -186,3 +186,141 @@ void Controller::loopOTA() {
 void Controller::setUpWiFi(const char* ssid, const char* password, const char* hostname) {
   wifi.init(ssid, password, hostname);
 }
+
+void Controller::updateDefaultParameters(stage_parameters &stage1_params, stage_parameters &stage2_params, stage_parameters &stage3_params, room_parameters &room, data_tset &N_tset ){
+  // Abre el archivo de configuración existente
+  File configFile = SPIFFS.open("/defaultParameters.txt", FILE_READ);
+  if (!configFile) {
+    Serial.println("Error al abrir el archivo de configuración para lectura");
+    return;
+  }
+
+  // Lee el contenido en una cadena
+  String content = configFile.readString();
+  configFile.close();
+
+  // Parsea el objeto JSON del archivo
+  StaticJsonDocument<1024> doc; // Cambiado a StaticJsonDocument
+  auto error = deserializeJson(doc, content);
+  if (error) {
+    Serial.println("Error al parsear el archivo de configuración");
+    return;
+  }
+
+  // Update the values
+  doc["stage1"]["f1Ontime"] = stage1_params.fanOnTime;
+  doc["stage1"]["f1Offtime"] = stage1_params.fanOffTime;
+
+  doc["stage2"]["f1Ontime"] = stage2_params.fanOnTime;
+  doc["stage2"]["f1Offtime"] = stage2_params.fanOffTime;
+  doc["stage2"]["s1Ontime"] = stage2_params.sprinklerOnTime;
+  doc["stage2"]["s1Offtime"] = stage2_params.sprinklerOffTime;
+
+  doc["stage3"]["f1Ontime"] = stage3_params.fanOnTime;
+  doc["stage3"]["f1Offtime"] = stage3_params.fanOffTime;
+  doc["stage3"]["s1Ontime"] = stage3_params.sprinklerOnTime;
+  doc["stage3"]["s1Offtime"] = stage3_params.sprinklerOffTime;
+
+  doc["setPoint"]["A"] = room.A;
+  doc["setPoint"]["B"] = room.B;
+  
+  doc["tset"]["tsSet"] = N_tset.ts;
+  doc["tset"]["tcSet"] = N_tset.tc;
+
+  // Open file for writing
+  configFile = SPIFFS.open("/defaultParameters.txt", FILE_WRITE);
+  if (!configFile) {
+    Serial.println("Error al abrir el archivo de configuración para escritura");
+    return;
+  }
+
+  // Serializa el JSON al archivo
+  if (serializeJson(doc, configFile) == 0) {
+    Serial.println("Error al escribir en el archivo de configuración");
+  }
+
+  configFile.close();
+}
+
+void Controller::runConfigFile(char* ssid, char* password, char* hostname, char* ip_address, uint16_t* port, char* username, char* prefix_topic) {
+  // Iniciar SPIFFS
+  if (!SPIFFS.begin(true)) {
+    logger.println("An error has occurred while mounting SPIFFS");
+    return;
+  }
+
+  // Leer archivo de configuración
+  File file = SPIFFS.open("/config.txt");
+  if (!file) {
+    logger.println("Failed to open config file");
+    return;
+  }
+
+  // Tamaño para el documento JSON
+  size_t size = file.size();
+  std::unique_ptr<char[]> buf(new char[size]);
+  file.readBytes(buf.get(), size);
+  file.close();
+
+  DynamicJsonDocument doc(1024);
+  DeserializationError error = deserializeJson(doc, buf.get());
+  if (error) {
+    Serial.println("Failed to parse config file");
+    return;
+  }
+
+  // Asignar valores y verificar si están presentes en el JSON
+  if (doc.containsKey("SSID")) strlcpy(ssid, doc["SSID"], SSID_SIZE);
+  if (doc.containsKey("WIFI_PASSWORD")) strlcpy(password, doc["WIFI_PASSWORD"], PASSWORD_SIZE);
+  if (doc.containsKey("HOST_NAME")) strlcpy(hostname, doc["HOST_NAME"], HOSTNAME_SIZE);
+  if (doc.containsKey("IP_ADDRESS")) strlcpy(ip_address, doc["IP_ADDRESS"], IP_ADDRESS_SIZE);
+  if (doc.containsKey("PORT")) *port = doc["PORT"];
+  if (doc.containsKey("USERNAME")) strlcpy(username, doc["USERNAME"], HOSTNAME_SIZE);
+  if (doc.containsKey("TOPIC")) strlcpy(prefix_topic, doc["TOPIC"], HOSTNAME_SIZE);
+}
+
+void Controller::setUpDefaultParameters(stage_parameters &stage1_params, stage_parameters &stage2_params, stage_parameters &stage3_params, room_parameters &room, data_tset &N_tset){
+  File file = SPIFFS.open("/defaultParameters.txt", "r");
+  if (!file) {
+    Serial.println("Error al abrir el archivo de parámetros");
+    return;
+  }
+
+  String jsonText = file.readString();
+  file.close();
+
+  // Parsea el JSON
+  StaticJsonDocument<1024> doc;
+  DeserializationError error = deserializeJson(doc, jsonText);
+  if (error) {
+    Serial.println("Error al parsear el JSON");
+    return;
+  }
+
+  stage1_params.fanOnTime = doc["stage1"]["f1Ontime"];
+  stage1_params.fanOffTime = doc["stage1"]["f1Offtime"];
+
+  stage2_params.fanOnTime = doc["stage2"]["f1Ontime"];
+  stage2_params.fanOffTime = doc["stage2"]["f1Offtime"];
+  stage2_params.sprinklerOnTime = doc["stage2"]["s1Ontime"];
+  stage2_params.sprinklerOffTime = doc["stage2"]["s1Offtime"];
+
+  stage3_params.fanOnTime = doc["stage3"]["f1Ontime"];
+  stage3_params.fanOffTime = doc["stage3"]["f1Offtime"];
+  stage3_params.sprinklerOnTime = doc["stage3"]["s1Ontime"];
+  stage3_params.sprinklerOffTime = doc["stage3"]["s1Offtime"];
+
+  room.A = doc["setPoint"]["A"];
+  room.B = doc["setPoint"]["B"];; 
+
+  N_tset.ts = doc["tset"]["tsSet"];
+  N_tset.tc = doc["tset"]["tcSet"];
+}
+
+void Controller::WiFiLoop() {
+  if (!isWiFiConnected()) {
+    reconnectWiFi();
+    delay(500);
+    return;
+  }
+}
