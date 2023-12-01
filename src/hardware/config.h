@@ -5,8 +5,8 @@
 #include <EdgeBox_ESP_100.h>
 
 #define SECS_IN_HR 3600
-#define TIME_ZONE_OFFSET_HRS            (-7)  /* Ensenada, México */
-// #define TIME_ZONE_OFFSET_HRS            (+8)   /* Taiping, Malaysia */
+// #define TIME_ZONE_OFFSET_HRS            (-7)  /* Ensenada, México */
+// // #define TIME_ZONE_OFFSET_HRS            (+8)   /* Taiping, Malaysia */
 
 // temperature acquisition filter 
 #define HIGH_TEMP_LIMIT 60

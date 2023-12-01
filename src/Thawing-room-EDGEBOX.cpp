@@ -90,7 +90,18 @@ SystemState currentState = IDLE;
 
 MqttClient mqtt;
 Controller controller;
+TaskHandle_t communicationTask;
 PID air_in_feed_PID(&pid_input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);  // DIRECT or REVERSE
+
+void backgroundTasks(void* pvParameters) {
+  for (;;) {
+    controller.WiFiLoop();
+
+    mqtt.loop();
+    controller.loopOTA();
+    delay(20);
+  }
+}
 
 
 void setup() {
@@ -117,6 +128,8 @@ void setup() {
   mqtt.setCallback(callback);
   // mqtt.exampleCall();
 
+  xTaskCreatePinnedToCore(backgroundTasks, "communicationTask", 10000, NULL, 1, &communicationTask, 0);
+
   //Turn the PID on
   air_in_feed_PID.SetMode(AUTOMATIC);
   air_in_feed_PID.SetSampleTime(3000);
@@ -133,11 +146,6 @@ void loop() {
     logger.println("RTC not connected"); 
     while (true) delay(1000);
   }
-
-  if(mqtt.isServiceAvailable()) controller.WiFiLoop();
-
-  mqtt.loop();
-  controller.loopOTA();
 
   updateTemperature();
 
@@ -441,7 +449,6 @@ void handleStage3() {
     publishStateChange(m_S1, sprinkler_1, "Stage 3 S1 stop published ");
   }
 }
-
 //// fct Callback ==> RECEIVE MQTT MESSAGES ////////////////////////////////////////////////////////////////////
 void callback(char *topic, byte *payload, unsigned int len) {
   logger.println("Message arrived [" + String(topic) + "]");
