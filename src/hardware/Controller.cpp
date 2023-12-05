@@ -43,7 +43,6 @@ void Controller::setUpIOS() {
 
 }
 
-
 void Controller::setUpAnalogOutputs() {
   ledcSetup(AIR_PWM, FREQ, RESOLUTION);
   ledcAttachPin(AIR_PIN, AIR_PWM);
@@ -119,6 +118,7 @@ DateTime Controller::getDateTime() {
 /// @param input 
 /// @return 
 // Those values are calculated with excel, either way hugo should fix this. in order that have a real linear ramp
+
 uint64_t Controller::readAnalogInput(uint8_t input) {
   uint64_t raw_voltage_ch = analog_inputs.readADC_SingleEnded(input) ;
   // If the input is odd, multiply by 1.5 Due that has a 5.1K resistor instead of a 10K

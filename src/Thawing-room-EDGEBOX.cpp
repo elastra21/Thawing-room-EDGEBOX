@@ -17,8 +17,10 @@ data_tset temp_set;
 uint8_t fan_1;
 uint8_t sprinkler_1;
 
+
 bool sprinkler_1_state = false;
 bool mtr_state = false;  // State of the motor that control the Fan F1
+
 
 // PID parameters
 float pid_output, pid_setpoint;           // value of the PID output
@@ -73,6 +75,7 @@ uint32_t turn_off_pid_timer = 0UL;     // stage 2 PID OFF
 uint32_t address_sending_timer = 0UL;  // Address Sending
 uint32_t A_B_timer = 0UL;              // Stage ON/OFF and A&B PUBLISH
 
+
 // ######################## Temperature ########################
 float TA = 0, TA_F = 0;  //Ta
 float TS = 0, TS_F = 0;  //Ts
@@ -102,7 +105,6 @@ void backgroundTasks(void* pvParameters) {
     delay(20);
   }
 }
-
 
 void setup() {
   controller.init();
@@ -159,7 +161,6 @@ void loop() {
   if (hasIntervalPassed(A_B_timer, 10000)) aknowledgementRoutine();
   if (currentState == STAGE2 && !STOP ) publishPID();  // PID works only on STAGE 2
 
-
   const bool start_stage2 = shouldStage2Start(current_date);
   const bool start_stage3 = shouldStage3Start(current_date);
 
@@ -177,11 +178,14 @@ void loop() {
     controller.writeDigitalOutput(VALVE_IO, LOW);
     controller.writeDigitalOutput(FAN_IO, LOW);
 
+
     fan_1 = 2;
     sprinkler_1 = 2;
 
+
     publishStateChange(m_F1, fan_1, "All M_F1 stop published ");
     publishStateChange(m_S1, sprinkler_1, "All M_S1 stop published ");
+
 
     logger.println("Stage 2 Initiated wait for 5 secs");
     stage2_rtc_set = stage2_started = true;
@@ -225,21 +229,24 @@ void loop() {
     controller.writeDigitalOutput(STAGE_3_IO, LOW);
     controller.writeDigitalOutput(VALVE_IO, LOW);
     controller.writeDigitalOutput(FAN_IO, LOW);
+
+
     Output = 0;
     coef_output = 0;
 
     fan_1 = 2;  // When M_F1 = 2 ==> OFF
     sprinkler_1 = 2;  // When M_S1 = 2 ==> OFF
 
+
     publishStateChange(m_F1, fan_1, "Stage 3 F1 init published ");
     publishStateChange(m_S1, sprinkler_1, "Stage 3 S1 init published ");
+
 
     sprinkler_1_state = false;  // Put the all the states to 0
     logger.println("Stage 3 Initiated");
     stage3_started = true;
   }
 
-  // Stage 3
   if (stage3_started && stage2_started && !STOP) {
     // State of Stage 3 turned to 1
     if ( currentState != STAGE3) {
@@ -254,7 +261,6 @@ void loop() {
    handleStage3();
   }
 }
-
 
 bool shouldStage2Start(DateTime &current_date) {
   bool is_after_stage2_time = current_date.hour() >= stage2_hour && current_date.minute() >= stage2_minute;
@@ -410,7 +416,7 @@ void handleStage2() {
 
 void handleStage3() {
   // Turn ON F1 when time is over
-  if(mtr_state && hasIntervalPassed(fan_1_stg_3_timer, stage3_params.fanOffTime, true)) {
+  if(!mtr_state && hasIntervalPassed(fan_1_stg_3_timer, stage3_params.fanOffTime, true)) {
     controller.writeDigitalOutput(FAN_IO, HIGH);
     // controller.writeAnalogOutput(AIR_PWM, duty_cycle);
     logger.println("Stage 3 F1 On");

@@ -136,7 +136,7 @@ void WIFI::setUpWebServer(bool brigeSerial){
 
 String WIFI::getIP(){
   String ip =  MDNS.queryHost("beer-control").toString();
-  Serial.println(ip);
+  // Serial.println(ip);
   return ip;
 }
 
@@ -204,7 +204,6 @@ void WIFI::connectToWiFi(){
   EEPROM.commit();
   EEPROM.end();
 
-  logger.println("IP address: ");
   logger.printValue("IP address: ", String(WiFi.localIP().toString()));
 }
 

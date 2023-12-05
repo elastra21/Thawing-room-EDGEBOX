@@ -2,7 +2,7 @@
   "SSID": "MFP-Guest24",
   "WIFI_PASSWORD": "testing123",
   "HOST_NAME": "eltesteador",
-  "IP_ADDRESS": "192.168.1.89",
+  "IP_ADDRESS": "192.168.1.202",
   "PORT": 1883,
   "USERNAME": "hola",
   "PASS": "",
