@@ -59,7 +59,7 @@ bool MqttClient::isConnected() {
 void MqttClient::loop() {
   if (!isServiceAvailable()) return;
   if (!mqttClient.connected()) reconnect();
-  
+
   delay(100);
   mqttClient.loop();
 }
@@ -109,12 +109,14 @@ void MqttClient::subscribeRoutine() {
 }
 
 void MqttClient::publishData(String topic, double value) {
+  if (WiFi.status() != WL_CONNECTED) return;
   char value_buffer[8];
   dtostrf(value, 1, 2, value_buffer);
   mqttClient.publish(topic.c_str(), value_buffer);
 }
 
 void MqttClient::publishData(String topic, String value) {
+  if (WiFi.status() != WL_CONNECTED) return;
   mqttClient.publish(topic.c_str(), value.c_str());
 }
 
@@ -133,7 +135,8 @@ bool MqttClient::getConnectionStatus() {
 
 // Función que construye el JSON y lo publica.
 void MqttClient::publishEcava(const String* topics, const String* values, int arraySize, const char* mqttTopic) {
-    StaticJsonDocument<512> jsonDoc; // Adjust the size as necessary
+  if (WiFi.status() != WL_CONNECTED) return;
+  StaticJsonDocument<512> jsonDoc; // Adjust the size as necessary
 
   String timeStamp = getIsoTimestamp(); // Ensure you have a function to get the ISO timestamp.
 

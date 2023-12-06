@@ -100,8 +100,10 @@ void backgroundTasks(void* pvParameters) {
   for (;;) {
     controller.WiFiLoop();
 
-    mqtt.loop();
-    controller.loopOTA();
+    if(controller.isWiFiConnected()) {
+      mqtt.loop();
+      controller.loopOTA();
+    }
     delay(20);
   }
 }
