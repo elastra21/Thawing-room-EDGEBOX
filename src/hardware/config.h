@@ -23,7 +23,8 @@
 #define STAGE_2_IO  DO_1   
 #define STAGE_3_IO  DO_2   
 #define VALVE_IO    DO_3   
-#define FAN_IO      DO_4   
+#define FAN_IO      DO_4
+#define FAN_CCW_IO  DO_5   
 
 // #define A0_5  27                            
 

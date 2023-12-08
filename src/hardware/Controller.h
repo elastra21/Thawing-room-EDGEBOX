@@ -24,12 +24,14 @@
 
 #define SECS_IN_HR 3600
 
-// #define TIME_ZONE_OFFSET_HRS            (-7)  /* Ensenada, México */
+// #define TIME_ZONE_OFFSET_HRS            (-8)  /* Ensenada, México */
 #define TIME_ZONE_OFFSET_HRS            (+8)   /* Taiping, Malaysia */
 
 typedef struct {
     float fanOnTime;
     float fanOffTime;
+    float fanOnTimeCCW;
+    float fanOffTimeCCW;
     float sprinklerOnTime;  // Optional, can be 0 or not used for Stage 1
     float sprinklerOffTime; // Optional, can be 0 or not used for Stage 1
 } stage_parameters;

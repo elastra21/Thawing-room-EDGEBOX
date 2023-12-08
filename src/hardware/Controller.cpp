@@ -302,11 +302,15 @@ void Controller::setUpDefaultParameters(stage_parameters &stage1_params, stage_p
 
   stage2_params.fanOnTime = doc["stage2"]["f1Ontime"];
   stage2_params.fanOffTime = doc["stage2"]["f1Offtime"];
+  stage2_params.fanOnTimeCCW = doc["stage2"]["f1OntimeCCW"];
+  stage2_params.fanOffTimeCCW = doc["stage2"]["f1OfftimeCCW"];
   stage2_params.sprinklerOnTime = doc["stage2"]["s1Ontime"];
   stage2_params.sprinklerOffTime = doc["stage2"]["s1Offtime"];
 
   stage3_params.fanOnTime = doc["stage3"]["f1Ontime"];
   stage3_params.fanOffTime = doc["stage3"]["f1Offtime"];
+  stage3_params.fanOnTimeCCW = doc["stage3"]["f1OntimeCCW"];
+  stage3_params.fanOffTimeCCW = doc["stage3"]["f1OfftimeCCW"];
   stage3_params.sprinklerOnTime = doc["stage3"]["s1Ontime"];
   stage3_params.sprinklerOffTime = doc["stage3"]["s1Offtime"];
 

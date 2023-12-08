@@ -19,8 +19,7 @@ uint8_t sprinkler_1;
 
 
 bool sprinkler_1_state = false;
-bool mtr_state = false;  // State of the motor that control the Fan F1
-
+uint8_t mtr_state = 0;  // State of the motor that control the Fan F1 >> 0=OFF, 1=ON, 2=OFF_CCW, 3=ON_CCW 
 
 // PID parameters
 float pid_output, pid_setpoint;           // value of the PID output
@@ -172,13 +171,15 @@ void loop() {
   // ---- MAIN PROCESS ----////////////////////////////////////////////////////////////////////////////
 
   if (start_stage2)  {
-    START1 = mtr_state = false;
+    START1 = false;
+    mtr_state = 0;
 
     controller.writeDigitalOutput(STAGE_1_IO, LOW);
     controller.writeDigitalOutput(STAGE_2_IO, LOW);
     controller.writeDigitalOutput(STAGE_3_IO, LOW);
     controller.writeDigitalOutput(VALVE_IO, LOW);
     controller.writeDigitalOutput(FAN_IO, LOW);
+    controller.writeDigitalOutput(FAN_CCW_IO, LOW);
 
 
     fan_1 = 2;
@@ -222,7 +223,8 @@ void loop() {
 
   //---- STAGE 3 ----////////////////////////////////////////////////////////////////////////////
   if (start_stage3) {
-    START1 = START2 = stage2_rtc_set = mtr_state = false;
+    START1 = START2 = stage2_rtc_set = false;
+    mtr_state = 0;
 
     // Turn All Output OFF
     controller.writeAnalogOutput(AIR_PWM, 0);
@@ -231,6 +233,7 @@ void loop() {
     controller.writeDigitalOutput(STAGE_3_IO, LOW);
     controller.writeDigitalOutput(VALVE_IO, LOW);
     controller.writeDigitalOutput(FAN_IO, LOW);
+    controller.writeDigitalOutput(FAN_CCW_IO, LOW);
 
 
     Output = 0;
@@ -319,21 +322,21 @@ void handleInputs() {
 
 void handleStage1() {
     // Turn ON F1
-  if (!mtr_state && !controller.readDigitalInput(FAN_IO) && hasIntervalPassed(fan_1_timer, stage1_params.fanOffTime , true)) {
+  if ((mtr_state==0) && !controller.readDigitalInput(FAN_IO) && hasIntervalPassed(fan_1_timer, stage1_params.fanOffTime , true)) {
     controller.writeDigitalOutput(FAN_IO, HIGH);                                                                                       // Turn ON F1
     logger.println("Stage 1 F1 On");
-    mtr_state = true;
+    mtr_state = 1;
     fan_1 = 1;  // When M_F1 = 1 ==> ON
 
     publishStateChange(m_F1, fan_1, "Stage 1 init M_F1 ON published ");
   }
 
   // Turn OFF F1 when the time set in the configuration is over
-  if (mtr_state && controller.readDigitalInput(FAN_IO) && hasIntervalPassed(fan_1_timer, stage1_params.fanOnTime , true)) {
+  if ((mtr_state==1) && controller.readDigitalInput(FAN_IO) && hasIntervalPassed(fan_1_timer, stage1_params.fanOnTime , true)) {
     controller.writeDigitalOutput(FAN_IO, LOW);
     // controller.writeAnalogOutput(AIR_PWM, 0);
     logger.println("Stage 1 F1 Off");
-    mtr_state = false;
+    mtr_state = 0;
     fan_1 = 2;  // When M_F1 = 2 ==> OFF
 
     publishStateChange(m_F1, fan_1, "Stage 1 init M_F1 OFF published ");
@@ -342,27 +345,51 @@ void handleStage1() {
 
 void handleStage2() {
   // Turn ON F1 when time is over
-  if (!mtr_state && hasIntervalPassed(fan_1_stg_2_timmer, stage2_params.fanOffTime, true)) {
+  if ((mtr_state==0) && hasIntervalPassed(fan_1_stg_2_timmer, stage2_params.fanOffTime, true)) {
     controller.writeDigitalOutput(FAN_IO, HIGH);  // Output of F1
+    controller.writeDigitalOutput(FAN_CCW_IO, LOW); // security that the output are not On at same time
     logger.println("Stage 2 F1 On");
-    mtr_state = true;
+    mtr_state = 1;
     fan_1 = 1;  // When M_F1 = 1 ==> ON
 
     publishStateChange(m_F1, fan_1, "Stage 2 F1 Start published ");
   }
 
   // Turn OFF F1 when time is over
-  if (mtr_state && hasIntervalPassed(fan_1_stg_2_timmer, stage2_params.fanOnTime, true) ){
+  if ((mtr_state==1) && hasIntervalPassed(fan_1_stg_2_timmer, stage2_params.fanOnTime, true) ){
     controller.writeDigitalOutput(FAN_IO, LOW);
+    controller.writeDigitalOutput(FAN_CCW_IO, LOW); // security that the output are not On at same time
     logger.println("Stage 2 F1 Off");
-    mtr_state = false;
+    mtr_state = 2;
     fan_1 = 2;  // When M_F1 = 2 ==> OFF
 
     publishStateChange(m_F1, fan_1, "Stage 2 F1 Stop published ");
   }
 
+  // TURN ON F1 CCW 
+  if ((mtr_state==2) && hasIntervalPassed(fan_1_stg_2_timmer, stage2_params.fanOffTimeCCW, true)) {
+    controller.writeDigitalOutput(FAN_CCW_IO, HIGH);  // Output of F1
+    controller.writeDigitalOutput(FAN_IO, LOW); // security that the output are not On at same time
+    logger.println("Stage 2 F1 CCW On");
+    mtr_state = 3;
+    fan_1 = 3;  // When M_F1 = 3 ==> ON CCW
+
+    publishStateChange(m_F1, fan_1, "Stage 2 F1 CCW Start published ");
+  }
+
+  // Turn OFF F1 CCW when time is over
+  if ((mtr_state==3) && hasIntervalPassed(fan_1_stg_2_timmer, stage2_params.fanOnTimeCCW, true) ){
+    controller.writeDigitalOutput(FAN_CCW_IO, LOW);
+    controller.writeDigitalOutput(FAN_IO, LOW); // security that the output are not On at same time
+    logger.println("Stage 2 F1 CCW Off");
+    mtr_state = 0;
+    fan_1 = 4;  // When M_F1 = 4 ==> OFF CCW
+
+    publishStateChange(m_F1, fan_1, "Stage 2 F1 CCW Stop published ");
+  }
+
   // Turn ON S1 when time is over
-  if (mtr_state && !sprinkler_1_state && hasIntervalPassed(sprinkler_1_stg_2_timer,stage2_params.sprinklerOffTime, true)) {    
+  if ((mtr_state==1) && !sprinkler_1_state && hasIntervalPassed(sprinkler_1_stg_2_timer,stage2_params.sprinklerOffTime, true)) {    
     controller.writeDigitalOutput(VALVE_IO, HIGH);  // Output of S1
     sprinkler_1_state = true;
     logger.println("Stage 2 S1 ON");
@@ -372,7 +399,7 @@ void handleStage2() {
   }
 
   // Turn OFF S1 when time is over
-  if ((sprinkler_1_state && hasIntervalPassed(sprinkler_1_stg_2_timer,stage2_params.sprinklerOnTime, true)) || !mtr_state ) {    
+  if ((sprinkler_1_state && hasIntervalPassed(sprinkler_1_stg_2_timer,stage2_params.sprinklerOnTime, true)) || (mtr_state==0)) {    
     controller.writeDigitalOutput(VALVE_IO, LOW);  // Output of S1
     sprinkler_1_state = false;
     logger.println("Stage 2 S1 OFF");
@@ -392,7 +419,7 @@ void handleStage2() {
   }
 
   // Activate the PID when F1 ON
-  if (mtr_state && hasIntervalPassed(turn_on_pid_timer, 3000)) {
+  if ((mtr_state==1) && hasIntervalPassed(turn_on_pid_timer, 3000)) {
     pid_input = TA_F;
     coef_output = (coef_pid * Output) / 100;  // Transform the Output of the PID to the desired max value
     logger.println(String(coef_output));
@@ -404,7 +431,7 @@ void handleStage2() {
   }
 
   // Put the PID at 0 when F1 OFF
-  if (!mtr_state && hasIntervalPassed(turn_on_pid_timer, 3000)) {
+  if ((mtr_state==0) && hasIntervalPassed(turn_on_pid_timer, 3000)) {
     //Setpoint = 0;
     pid_input = 0;
     Output = 0;
@@ -418,25 +445,48 @@ void handleStage2() {
 
 void handleStage3() {
   // Turn ON F1 when time is over
-  if(!mtr_state && hasIntervalPassed(fan_1_stg_3_timer, stage3_params.fanOffTime, true)) {
+  if((mtr_state==0) && hasIntervalPassed(fan_1_stg_3_timer, stage3_params.fanOffTime, true)) {
     controller.writeDigitalOutput(FAN_IO, HIGH);
+    controller.writeDigitalOutput(FAN_CCW_IO, LOW); // security that the output are not On at same time
     // controller.writeAnalogOutput(AIR_PWM, duty_cycle);
     logger.println("Stage 3 F1 On");
-    mtr_state = true;
+    mtr_state = 1;
     fan_1 = 1;
 
     publishStateChange(m_F1, fan_1, "Stage 3 F1 start published ");
   }
 
   // Turn OFF F1 when time is over
-  if(mtr_state && hasIntervalPassed(fan_1_stg_3_timer, stage3_params.fanOnTime, true)) {
+  if((mtr_state==1) && hasIntervalPassed(fan_1_stg_3_timer, stage3_params.fanOnTime, true)) {
     controller.writeDigitalOutput(FAN_IO, LOW);
+    controller.writeDigitalOutput(FAN_CCW_IO, LOW); // security that the output are not On at same time
     // controller.writeAnalogOutput(AIR_PWM, 0);
     logger.println("Stage 3 F1 Off");
-    mtr_state = false;
+    mtr_state = 2;
     fan_1 = 2;
 
     publishStateChange(m_F1, fan_1, "Stage 3 F1 stop published ");
+  }
+
+  // TURN ON F1 CCW
+  if ((mtr_state==2) && hasIntervalPassed(fan_1_stg_3_timer, stage3_params.fanOffTimeCCW, true)) {
+    controller.writeDigitalOutput(FAN_CCW_IO, HIGH);  // Output of F1
+    controller.writeDigitalOutput(FAN_IO, LOW); // security that the output are not On at same time
+    logger.println("Stage 3 F1 CCW On");
+    fan_1 = 3;  // When M_F1 = 3 ==> ON CCW
+    mtr_state = 3;
+    publishStateChange(m_F1, fan_1, "Stage 3 F1 CCW Start published ");
+  }
+
+  // Turn OFF F1 CCW
+  if ((mtr_state==3) && hasIntervalPassed(fan_1_stg_3_timer, stage3_params.fanOnTimeCCW, true) ){
+    controller.writeDigitalOutput(FAN_CCW_IO, LOW);
+    controller.writeDigitalOutput(FAN_IO, LOW); // security that the output are not On at same time
+    logger.println("Stage 3 F1 CCW Off");
+    mtr_state = 0;
+    fan_1 = 4;  // When M_F1 = 4 ==> OFF CCW
+
+    publishStateChange(m_F1, fan_1, "Stage 3 F1 CCW Stop published ");
   }
 
   if (!sprinkler_1_state && hasIntervalPassed(sprinkler_1_stg_3_timer, stage3_params.sprinklerOffTime, true)) {
@@ -497,7 +547,7 @@ void callback(char *topic, byte *payload, unsigned int len) {
     update_default_parameters = true;
   }
 
-  // F1 and S1 STAGE 2 on/off time
+  // F1, F1 CCW and S1 STAGE 2 on/off time
   if (mqtt.isTopicEqual(topic, sub_f1_st2_ontime) && noButtonPressed()) {
     stage2_params.fanOnTime = mqtt.responseToFloat(payload, len);
     logger.println("F1 Stage 2 on time set to: " + String(stage2_params.fanOnTime) + " MINS");
@@ -507,6 +557,18 @@ void callback(char *topic, byte *payload, unsigned int len) {
   if (mqtt.isTopicEqual(topic, sub_f1_st2_offtime) && noButtonPressed()) {
     stage2_params.fanOffTime = mqtt.responseToFloat(payload, len);
     logger.println("F1 Stage 2 off time set to: " + String(stage2_params.fanOffTime) + " MINS");
+    update_default_parameters = true;
+  }
+
+  if (mqtt.isTopicEqual(topic, sub_f1_ccw_st2_ontime) && noButtonPressed()) {
+    stage2_params.fanOnTimeCCW = mqtt.responseToFloat(payload, len);
+    logger.println("F1 CCW Stage 2 on time set to: " + String(stage2_params.fanOnTimeCCW) + " MINS");
+    update_default_parameters = true;
+  }
+
+  if (mqtt.isTopicEqual(topic, sub_f1_ccw_st2_offtime) && noButtonPressed()) {
+    stage2_params.fanOffTimeCCW = mqtt.responseToFloat(payload, len);
+    logger.println("F1 CCW Stage 2 off time set to: " + String(stage2_params.fanOffTimeCCW) + " MINS");
     update_default_parameters = true;
   }
 
@@ -532,6 +594,18 @@ void callback(char *topic, byte *payload, unsigned int len) {
   if (mqtt.isTopicEqual(topic, sub_f1_st3_offtime) && noButtonPressed()) {
     stage3_params.fanOffTime = mqtt.responseToFloat(payload, len);
     logger.println("F1 Stage 3 off time set to: " + String(stage3_params.fanOffTime) + " MINS");
+    update_default_parameters = true;
+  }
+
+  if (mqtt.isTopicEqual(topic, sub_f1_ccw_st3_ontime) && noButtonPressed()) {
+    stage3_params.fanOnTimeCCW = mqtt.responseToFloat(payload, len);
+    logger.println("F1 CCW Stage 3 on time set to: " + String(stage3_params.fanOnTimeCCW) + " MINS");
+    update_default_parameters = true;
+  }
+
+  if (mqtt.isTopicEqual(topic, sub_f1_ccw_st3_offtime) && noButtonPressed()) {
+    stage3_params.fanOffTimeCCW = mqtt.responseToFloat(payload, len);
+    logger.println("F1 CCW Stage 3 off time set to: " + String(stage3_params.fanOffTimeCCW) + " MINS");
     update_default_parameters = true;
   }
 
@@ -640,6 +714,7 @@ void stopRoutine() {
     controller.writeDigitalOutput(STAGE_3_IO, LOW);
     controller.writeDigitalOutput(VALVE_IO, LOW);
     controller.writeDigitalOutput(FAN_IO, LOW);
+    controller.writeDigitalOutput(FAN_CCW_IO, LOW);
     controller.writeAnalogOutput(AIR_PWM, 0);
     // analogWrite(A0_5, 0);
 
@@ -656,8 +731,9 @@ void stopRoutine() {
   }
 
   if (!stop_temp2) {
-    mtr_state = sprinkler_1_state = START1 = START2 = stage2_started = stage3_started = stage2_rtc_set = false;
+    sprinkler_1_state = START1 = START2 = stage2_started = stage3_started = stage2_rtc_set = false;
     stop_temp2 = true;
+    mtr_state = 0;
   }
 
   if (stop_temp2) {
@@ -725,12 +801,16 @@ void aknowledgementRoutine(){
   // STAGE 2
   mqtt.publishData(ACK_F1_ST2_ONTIME, stage2_params.fanOnTime);
   mqtt.publishData(ACK_F1_ST2_OFFTIME, stage2_params.fanOffTime);
+  mqtt.publishData(ACK_F1_CCW_ST2_ONTIME, stage2_params.fanOnTimeCCW);
+  mqtt.publishData(ACK_F1_CCW_ST2_OFFTIME, stage2_params.fanOffTimeCCW);
   mqtt.publishData(ACK_S1_ST2_ONTIME, stage2_params.sprinklerOnTime);
   mqtt.publishData(ACK_S1_ST2_OFFTIME, stage2_params.sprinklerOffTime);
 
   // STAGE 3
   mqtt.publishData(ACK_F1_ST3_ONTIME, stage3_params.fanOnTime);
   mqtt.publishData(ACK_F1_ST3_OFFTIME, stage3_params.fanOffTime);
+  mqtt.publishData(ACK_F1_CCW_ST3_ONTIME, stage3_params.fanOnTimeCCW);
+  mqtt.publishData(ACK_F1_CCW_ST3_OFFTIME, stage3_params.fanOffTimeCCW);
   mqtt.publishData(ACK_S1_ST3_ONTIME, stage3_params.sprinklerOnTime);
   mqtt.publishData(ACK_S1_ST3_OFFTIME, stage3_params.sprinklerOffTime);
 

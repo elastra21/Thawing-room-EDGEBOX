@@ -6,12 +6,16 @@
   "stage2":{
     "f1Ontime": 30,
     "f1Offtime": 10,
+    "f1OntimeCCW": 10,
+    "f1OfftimeCCW": 10,
     "s1Ontime": 1,
     "s1Offtime": 5
   },
   "stage3": {
     "f1Ontime": 10,
     "f1Offtime": 30,
+    "f1OntimeCCW": 10,
+    "f1OfftimeCCW": 10,
     "s1Ontime": 1,
     "s1Offtime": 15
   },
