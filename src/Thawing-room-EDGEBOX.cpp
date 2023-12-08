@@ -200,7 +200,6 @@ void loop() {
       controller.writeDigitalOutput(STAGE_1_IO, HIGH);  // Turn On the LED of Stage 1
       logger.println("Stage 1 Started");
       setStage(STAGE1);
-      logger.println("Stage 1 Status Send packet ");
       fan_1_timer = millis() - (stage1_params.fanOnTime * MINS);
     }
     handleStage1();
@@ -213,7 +212,6 @@ void loop() {
 
       logger.println("Stage 2 Started");
       setStage(STAGE2);
-      logger.println("Stage 0 Status Send packet ");
       fan_1_stg_2_timmer = millis() - (stage2_params.fanOffTime * MINS);
     }
 
@@ -256,7 +254,6 @@ void loop() {
 
       logger.println("Stage 3 Started");
       setStage(STAGE3);
-      logger.println("Stage 3 Status Send packet ");
       fan_1_stg_3_timer = millis() - (stage3_params.fanOffTime * MINS);
     }
 
@@ -652,7 +649,6 @@ void stopRoutine() {
     mqtt.publishData(m_F1, fan_1);
     mqtt.publishData(m_S1, sprinkler_1);
     setStage(IDLE);
-    logger.println("Stage 0 Status Send packet ");
   }
 
   if (!stop_temp2) {
@@ -783,17 +779,17 @@ void publishTemperatures(DateTime &current_date) {
 
     // for debug purpose
     logger.println("Average: " + String(temp_data.avg_ts));
-    logger.println(String(controller.readDigitalInput(DI0)));
+    // logger.println(String(controller.readDigitalInput(DI0)));
     logger.println("Ts: " + String(TS));
     logger.println("TC: " + String(TC));
     logger.println("Ta: " + String(TA));
-    logger.println("Nstart: " + String(remote_start));
-    logger.println("Nstop: " + String(remote_stop));
-    logger.println("A variable: " + String(room.A));
-    logger.println("B variable: " + String(room.B));
-    logger.println("P variable: " + String(Kp));
-    logger.println("I variable: " + String(Ki));
-    logger.println("D variable: " + String(Kd));
+    // logger.println("Nstart: " + String(remote_start));
+    // logger.println("Nstop: " + String(remote_stop));
+    // logger.println("A variable: " + String(room.A));
+    // logger.println("B variable: " + String(room.B));
+    // logger.println("P variable: " + String(Kp));
+    // logger.println("I variable: " + String(Ki));
+    // logger.println("D variable: " + String(Kd));
     logger.println("setpoint raw: " + String(Setpoint));
     logger.println("setpoint: " + String(pid_setpoint));
 
