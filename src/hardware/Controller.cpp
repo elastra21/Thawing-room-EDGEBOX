@@ -277,6 +277,13 @@ void Controller::runConfigFile(char* ssid, char* password, char* hostname, char*
   if (doc.containsKey("PORT")) *port = doc["PORT"];
   if (doc.containsKey("USERNAME")) strlcpy(username, doc["USERNAME"], HOSTNAME_SIZE);
   if (doc.containsKey("TOPIC")) strlcpy(prefix_topic, doc["TOPIC"], HOSTNAME_SIZE);
+
+  Serial.println(" SSID: " + String(ssid));
+  Serial.println(" PASSWORD: " + String(password));
+  Serial.println(" HOSTNAME: " + String(hostname));
+  Serial.println(" IP_ADDRESS: " + String(ip_address));
+  Serial.println(" PORT: " + String(*port));
+  Serial.println(" USERNAME: " + String(username));
 }
 
 void Controller::setUpDefaultParameters(stage_parameters &stage1_params, stage_parameters &stage2_params, stage_parameters &stage3_params, room_parameters &room, data_tset &N_tset){

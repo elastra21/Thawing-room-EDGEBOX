@@ -672,14 +672,18 @@ bool isValidTemperature(float temp, float minTemp, float maxTemp, const String& 
 void updateTemperature() {
   controller.updateProbesTemperatures();
 
-  float ta_raw = controller.readTempFrom(TA_AI);
-  TA = isValidTemperature(ta_raw, TA_MIN, TA_MAX, "TA") ? ta_raw : TA_DEF;
+  TA = controller.readTempFrom(TA_AI);
+  TS = controller.readTempFrom(TS_AI);
+  TC = controller.readTempFrom(TC_AI);
 
-  float ts_raw = controller.readTempFrom(TS_AI);
-  TS = isValidTemperature(ts_raw, TS_MIN, TS_MAX, "TS") ? ts_raw : TS_DEF;
+  // float ta_raw = controller.readTempFrom(TA_AI);
+  // TA = isValidTemperature(ta_raw, TA_MIN, TA_MAX, "TA") ? ta_raw : TA_DEF;
 
-  float tc_raw = controller.readTempFrom(TC_AI);
-  TC = isValidTemperature(tc_raw, TC_MIN, TC_MAX, "TC") ? tc_raw : TC_DEF;
+  // float ts_raw = controller.readTempFrom(TS_AI);
+  // TS = isValidTemperature(ts_raw, TS_MIN, TS_MAX, "TS") ? ts_raw : TS_DEF;
+
+  // float tc_raw = controller.readTempFrom(TC_AI);
+  // TC = isValidTemperature(tc_raw, TC_MIN, TC_MAX, "TC") ? tc_raw : TC_DEF;
 
   TI = controller.getOneWireTempFrom(controller.ADDRESS_TI);  // Assuming TI doesn't need validation
 }
