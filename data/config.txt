@@ -1,8 +1,8 @@
 {
-  "SSID": "MFP-Guest24",
-  "WIFI_PASSWORD": "testing123",
+  "SSID": "Pez Gordo",
+  "WIFI_PASSWORD": "SardinaMacarena2021",
   "HOST_NAME": "eltesteador",
-  "IP_ADDRESS": "192.168.1.202",
+  "IP_ADDRESS": "192.168.100.52",
   "PORT": 1883,
   "USERNAME": "hola",
   "PASS": "",

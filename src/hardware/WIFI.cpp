@@ -118,12 +118,12 @@ void WIFI::setUpWebServer(bool brigeSerial){
     ESP.restart(); 
   }, handle_update_progress_cb);
   
-  if (brigeSerial) {
+  // if (brigeSerial) {
     #ifdef WebSerial_h // Verifica si WebSerialLite.h está incluido 
       WebSerial.begin(&server);
       WebSerial.onMessage(recvMsg);
     #endif // WebSerialLite_h
-  }
+  // }
   server.begin();
 }
 

@@ -32,19 +32,38 @@ bool MqttClient::isServiceAvailable() {
 
 
 void MqttClient::reconnect() {
-  while (!mqttClient.connected()) {
-    mqttClient.flush();
-    mqttClient.disconnect();
-    mqttClient.setServer(mqtt_domain, mqtt_port);
-    logger.print("Attempting MQTT connection...");
-    if (mqttClient.connect(mqtt_username)) {
-      logger.println("connected");
-      subscribeRoutine();
-    } else {
-      logger.printValue("failed, rc=",String(mqttClient.state()));
-      logger.println(" try again in 5 seconds");
-      delay(5000);
+  static unsigned long lastReconnectAttempt = 0;
+  unsigned long now = millis();
+  static int reconnectAttempts = 0;
+
+  if (!mqttClient.connected()) {
+    if (now - lastReconnectAttempt > 120000 || reconnectAttempts == 0) { // 120000ms = 2 minutos
+      lastReconnectAttempt = now;
+
+      if (reconnectAttempts < 5) {
+        mqttClient.flush();
+        mqttClient.disconnect();
+        mqttClient.setServer(mqtt_domain, mqtt_port);
+        
+        WebSerial.print("Attempting MQTT connection...");
+
+        if (mqttClient.connect(mqtt_username)) {
+          WebSerial.println("connected");
+          subscribeRoutine();
+          reconnectAttempts = 0; // Resetear los intentos si la conexión es exitosa
+        } else {
+          WebSerial.print("failed, rc=");
+          WebSerial.print(mqttClient.state());
+          WebSerial.println(" try again in 2 minutes");
+          reconnectAttempts++;
+        }
+      } else {
+        WebSerial.println("Max reconnect attempts reached, try again in 2 minutes");
+        reconnectAttempts = 0; // Resetear los intentos después de alcanzar el máximo
+      }
     }
+  } else {
+    reconnectAttempts = 0; // Resetear los intentos si ya está conectado
   }
 }
 
@@ -60,7 +79,7 @@ void MqttClient::loop() {
   if (!isServiceAvailable()) return;
   if (!mqttClient.connected()) reconnect();
 
-  delay(100);
+  vTaskDelay(100 / portTICK_PERIOD_MS);
   mqttClient.loop();
 }
 

@@ -104,7 +104,8 @@ void backgroundTasks(void* pvParameters) {
       mqtt.loop();
       controller.loopOTA();
     }
-    delay(20);
+
+    vTaskDelay(20 / portTICK_PERIOD_MS);
   }
 }
 
@@ -369,7 +370,9 @@ void handleStage2() {
   }
 
   // Turn OFF S1 when time is over
-  if ((sprinkler_1_state && hasIntervalPassed(sprinkler_1_stg_2_timer,stage2_params.sprinklerOnTime, true)) || !mtr_state ) {    
+  unsigned long timeConditionMet = hasIntervalPassed(sprinkler_1_stg_2_timer,stage2_params.sprinklerOnTime, true);
+
+  if ((sprinkler_1_state || !mtr_state) && timeConditionMet) {    
     controller.writeDigitalOutput(VALVE_IO, LOW);  // Output of S1
     sprinkler_1_state = false;
     logger.println("Stage 2 S1 OFF");
@@ -401,7 +404,7 @@ void handleStage2() {
   }
 
   // Put the PID at 0 when F1 OFF
-  if (!mtr_state && hasIntervalPassed(turn_on_pid_timer, 3000)) {
+  if (!mtr_state && hasIntervalPassed(turn_off_pid_timer, 3000)) {
     //Setpoint = 0;
     pid_input = 0;
     Output = 0;
@@ -718,6 +721,12 @@ void publishStateChange(const char* topic, int state, const String& message) {
 }
 
 void aknowledgementRoutine(){
+  mqtt.publishData(STAGE, currentState);
+  mqtt.publishData(m_F1, fan_1);
+  // mqtt.publishData(m_F2, fan_2);
+  mqtt.publishData(m_S1, sprinkler_1);
+  mqtt.publishData(PID_OUTPUT, coef_output);
+
     // STAGE 1
   mqtt.publishData(ACK_F1_ST1_ONTIME, stage1_params.fanOnTime);
   mqtt.publishData(ACK_F1_ST1_OFFTIME, stage1_params.fanOffTime);
@@ -783,6 +792,7 @@ void publishTemperatures(DateTime &current_date) {
 
     // for debug purpose
     logger.println("Average: " + String(temp_data.avg_ts));
+    logger.println("Stage: " + String(currentState));
     // logger.println(String(controller.readDigitalInput(DI0)));
     logger.println("Ts: " + String(TS));
     logger.println("TC: " + String(TC));
