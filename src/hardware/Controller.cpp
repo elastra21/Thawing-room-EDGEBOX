@@ -25,7 +25,7 @@ void Controller::init() {
   setUpIOS();
 }
 
-void Controller::setUpLogger() {
+void Controller::setUpLogger() {  
   #ifdef WebSerial
     logger.init(115200);
     logger.println("Logger set up");

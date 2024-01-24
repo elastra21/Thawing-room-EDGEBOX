@@ -125,7 +125,7 @@ void setup() {
 
   setStage(IDLE);
 
-  controller.setUpWiFi(SSID, PASS,HOST_NAME);
+  controller.setUpWiFi(SSID, PASS, HOST_NAME);
   controller.connectToWiFi(true, true, true);
   controller.setUpRTC();
 

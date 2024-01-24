@@ -90,7 +90,7 @@ void WIFI::setUpWebServer(bool brigeSerial){
   if (!MDNS.begin(hostname)){ // http://esp32.local
     logger.println("Error setting up MDNS responder!");
     while (1){
-      delay(1000);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
   }
   logger.println("mDNS responder started Pinche Hugo");
@@ -118,12 +118,12 @@ void WIFI::setUpWebServer(bool brigeSerial){
     ESP.restart(); 
   }, handle_update_progress_cb);
   
-  // if (brigeSerial) {
+  if (brigeSerial) {
     #ifdef WebSerial_h // Verifica si WebSerialLite.h está incluido 
       WebSerial.begin(&server);
       WebSerial.onMessage(recvMsg);
     #endif // WebSerialLite_h
-  // }
+  }
   server.begin();
 }
 

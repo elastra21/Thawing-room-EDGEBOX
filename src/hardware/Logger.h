@@ -1,7 +1,7 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#define WebSerial Serial
+// #define WebSerial Serial
 
 #include <Arduino.h>
 
