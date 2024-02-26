@@ -1,6 +1,8 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
+// include MQTT_CLIENT
+#include "MqttClient.h"
 #include <EdgeBox_ESP_100.h>
 #include <FS.h>
 #include "WIFI.h"
