@@ -276,14 +276,20 @@ void Controller::runConfigFile(char* ssid, char* password, char* hostname, char*
   if (doc.containsKey("IP_ADDRESS")) strlcpy(ip_address, doc["IP_ADDRESS"], IP_ADDRESS_SIZE);
   if (doc.containsKey("PORT")) *port = doc["PORT"];
   if (doc.containsKey("USERNAME")) strlcpy(username, doc["USERNAME"], HOSTNAME_SIZE);
-  if (doc.containsKey("TOPIC")) strlcpy(prefix_topic, doc["TOPIC"], HOSTNAME_SIZE);
+  // if (doc.containsKey("TOPIC")) strlcpy(prefix_topic, doc["TOPIC"], HOSTNAME_SIZE);
+  if (doc.containsKey("MQTT_ID")) strlcpy(mqtt_id, doc["MQTT_ID"], MQTT_ID_SIZE);
+  if (doc.containsKey("MQTT_PASSWORD")) strlcpy(mqtt_password, doc["MQTT_PASSWORD"], MQTT_PASSWORD_SIZE);
+  
 
-  Serial.println(" SSID: " + String(ssid));
-  Serial.println(" PASSWORD: " + String(password));
-  Serial.println(" HOSTNAME: " + String(hostname));
-  Serial.println(" IP_ADDRESS: " + String(ip_address));
-  Serial.println(" PORT: " + String(*port));
-  Serial.println(" USERNAME: " + String(username));
+  // Serial.println(" SSID: " + String(ssid));
+  // Serial.println(" PASSWORD: " + String(password));
+  // Serial.println(" HOSTNAME: " + String(hostname));
+  // Serial.println(" IP_ADDRESS: " + String(ip_address));
+  // Serial.println(" PORT: " + String(*port));
+  // Serial.println(" USERNAME: " + String(username));
+  // Serial.println(" MQTT_ID: " + String(mqtt_id));
+  // Serial.println(" MQTT_PASSWORD: " + String(mqtt_password));
+
 }
 
 void Controller::setUpDefaultParameters(stage_parameters &stage1_params, stage_parameters &stage2_params, stage_parameters &stage3_params, room_parameters &room, data_tset &N_tset){

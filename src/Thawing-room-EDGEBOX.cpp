@@ -131,7 +131,7 @@ void setup() {
   controller.connectToWiFi(true, true, true);
   controller.setUpRTC();
 
-  mqtt.connect(IP_ADDRESS, PORT, MQTT_ID, USERNAME, PASS);
+  mqtt.connect(IP_ADDRESS, PORT, MQTT_ID, USERNAME, MQTT_PASSWORD);
   mqtt.setCallback(callback);
   // mqtt.exampleCall();
 

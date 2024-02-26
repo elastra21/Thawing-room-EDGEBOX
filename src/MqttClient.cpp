@@ -22,6 +22,12 @@ void MqttClient::connect(const char *domain, uint16_t port, const char *id, cons
     strncpy(mqtt_password, password, sizeof(mqtt_password) - 1);
   mqtt_password[sizeof(mqtt_password) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
 
+  Serial.println("Domain: " + String(domain));
+  Serial.println("Port: " + String(port));
+  Serial.println("ID: " + String(mqtt_id));
+  Serial.println("Username: " + String(mqtt_username));
+  Serial.println("Password: " + String(mqtt_password));
+
   mqttClient.setServer(domain, port);
   if (mqttClient.connect(mqtt_id, mqtt_username, mqtt_password)) {
     logger.println("Connection has been established, well done");
