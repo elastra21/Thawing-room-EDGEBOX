@@ -6,18 +6,24 @@ PubSubClient mqttClient(esp32Client);
 
 // void subscribeReceive(char* topic, byte* payload, unsigned int length);
 
-void MqttClient::connect(const char *domain, uint16_t port, const char *username) {
+void MqttClient::connect(const char *domain, uint16_t port, const char *id, const char *username, const char *password) {
   //storing the username, port and domain in a global variable
-  strncpy(mqtt_username, username, sizeof(mqtt_username) - 1);
-  mqtt_username[sizeof(mqtt_username) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
-
   strncpy(mqtt_domain, domain, sizeof(mqtt_domain) - 1);
   mqtt_domain[sizeof(mqtt_domain) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
 
   mqtt_port = port;
 
+    strncpy(mqtt_id, id, sizeof(mqtt_id) - 1);
+  mqtt_id[sizeof(mqtt_id) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
+
+    strncpy(mqtt_username, username, sizeof(mqtt_username) - 1);
+  mqtt_username[sizeof(mqtt_username) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
+
+    strncpy(mqtt_password, password, sizeof(mqtt_password) - 1);
+  mqtt_password[sizeof(mqtt_password) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
+
   mqttClient.setServer(domain, port);
-  if (mqttClient.connect(mqtt_username)) {
+  if (mqttClient.connect(mqtt_id, mqtt_username, mqtt_password)) {
     logger.println("Connection has been established, well done");
     subscribeRoutine();
     no_service_available = false;
@@ -47,7 +53,7 @@ void MqttClient::reconnect() {
         
         WebSerial.print("Attempting MQTT connection...");
 
-        if (mqttClient.connect(mqtt_username)) {
+        if (mqttClient.connect(mqtt_id, mqtt_username, mqtt_password)) {
           WebSerial.println("connected");
           subscribeRoutine();
           reconnectAttempts = 0; // Resetear los intentos si la conexión es exitosa
@@ -88,7 +94,7 @@ void MqttClient::setCallback(std::function<void(char *, uint8_t *, unsigned int)
 }
 
 void MqttClient::subscribeRoutine() {
-  if (mqttClient.connect(mqtt_username)) {
+  if (mqttClient.connect(mqtt_id, mqtt_username, mqtt_password)) {
     logger.println("connected, subscribing");
     if (!mqttClient.subscribe(sub_hours, 1)) logger.println("sub hours failed !");
     if (!mqttClient.subscribe(sub_minutes, 1)) logger.println("sub hours failed !");

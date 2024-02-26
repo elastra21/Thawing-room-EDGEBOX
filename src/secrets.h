@@ -16,6 +16,6 @@
 
 
 #define PORT      1883
-#define USERNAME  "MDuino01"  //name of the device on to the broker
-#define PASS      ""              // optional psw
-#define TOPIC     "home/bedroom/temperature" //topic to publish to
+#define MQTT_ID   "Edgebox_mfp2"  //name of the device on to the broker
+#define USERNAME  "mafipro"     //name of the user to secure connection
+#define PASS      "Cfpp2021"              // Password for secure connection

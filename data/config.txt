@@ -4,7 +4,8 @@
   "HOST_NAME": "edgebox",
   "IP_ADDRESS": "192.168.100.52",
   "PORT": 1883,
-  "USERNAME": "hola",
-  "PASS": "",
+  "MQTT_ID": "Edgebox_MFP"
+  "USERNAME": "chicano",
+  "PASS": "nomameshugo",
   "TOPIC": "nomms/"
 }

@@ -242,7 +242,7 @@ void Controller::updateDefaultParameters(stage_parameters &stage1_params, stage_
   configFile.close();
 }
 
-void Controller::runConfigFile(char* ssid, char* password, char* hostname, char* ip_address, uint16_t* port, char* username, char* prefix_topic) {
+void Controller::runConfigFile(char* ssid, char* password, char* hostname, char* ip_address, uint16_t* port, char* mqtt_id, char* username, char* mqtt_password, char* prefix_topic) {
   // Iniciar SPIFFS
   if (!SPIFFS.begin(true)) {
     logger.println("An error has occurred while mounting SPIFFS");
