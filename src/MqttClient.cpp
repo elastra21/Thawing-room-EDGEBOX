@@ -13,13 +13,13 @@ void MqttClient::connect(const char *domain, uint16_t port, const char *id, cons
 
   mqtt_port = port;
 
-    strncpy(mqtt_id, id, sizeof(mqtt_id) - 1);
+  strncpy(mqtt_id, id, sizeof(mqtt_id) - 1);
   mqtt_id[sizeof(mqtt_id) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
 
-    strncpy(mqtt_username, username, sizeof(mqtt_username) - 1);
+  strncpy(mqtt_username, username, sizeof(mqtt_username) - 1);
   mqtt_username[sizeof(mqtt_username) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
 
-    strncpy(mqtt_password, password, sizeof(mqtt_password) - 1);
+  strncpy(mqtt_password, password, sizeof(mqtt_password) - 1);
   mqtt_password[sizeof(mqtt_password) - 1] = '\0';  // Asegurarse de que esté terminado con '\0'
 
   Serial.println("Domain: " + String(domain));

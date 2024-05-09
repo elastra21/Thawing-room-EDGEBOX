@@ -139,11 +139,12 @@ void Controller::writeDigitalOutput(uint8_t output, uint8_t value) {
 }
 
 float Controller::readTempFrom(uint8_t channel) {
-  const uint16_t raw_voltage_ch = readAnalogInput(channel); 
+  const uint64_t raw_voltage_ch = readAnalogInput(channel); 
   // const float voltage_ch = (raw_voltage_ch * voltage_per_step);
   // Serial.println(voltage_ch);
   // const float temp = (voltage_ch * temperature_per_step) + TEMPERATURE_MIN;
-  const float temp = raw_voltage_ch * (50 + 20) / (13284 - 2708) - 20; // ramp calculated with excel trhough manual calibration
+  const float ratio = (50.00 + 20.00) / (13284.00 - 2708.00);
+  const float temp = raw_voltage_ch * ratio  - 20; // ramp calculated with excel trhough manual calibration
   return temp;
 }
 
