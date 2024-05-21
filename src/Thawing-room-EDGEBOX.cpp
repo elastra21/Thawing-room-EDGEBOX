@@ -142,6 +142,8 @@ void setup() {
   air_in_feed_PID.SetSampleTime(3000);
   air_in_feed_PID.SetTunings(Kp, Ki, Kd);
 
+  logger.println("rebooted: " + controller.getDateTime().timestamp());
+
   delay(750);
 }
 
