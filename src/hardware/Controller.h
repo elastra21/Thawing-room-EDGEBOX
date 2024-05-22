@@ -15,6 +15,7 @@
 #include <Arduino.h>
 #include <OneWire.h>
 #include <NTPClient.h>
+#include <Preferences.h>
 #include <ArduinoJson.h>
 #include <Adafruit_ADS1X15.h>
 #include <DallasTemperature.h>
@@ -36,6 +37,20 @@ typedef struct {
     float sprinklerOffTime; // Optional, can be 0 or not used for Stage 1
 } stage_parameters;
 
+enum SystemState {
+    IDLE,
+    STAGE1,
+    STAGE2,
+    STAGE3,
+    ERROR,
+    NUM_STATES
+};
+
+struct StageState {
+    uint8_t stage;
+    uint8_t step;
+};
+
 // A and B variables
 typedef struct { float A; float B; }                  room_parameters;
 
@@ -46,6 +61,7 @@ class Controller {
 private:
     WIFI wifi;
     RTC_PCF8563 rtc;
+    Preferences preferences;
     EdgeBox_ESP_100 edgebox;
     Adafruit_ADS1115 analog_inputs; // Should be move to controller
 
@@ -59,6 +75,9 @@ private:
 public:
     ~Controller();
     Controller(/* args */);
+
+    StageState getLastState();
+    void saveLastState(StageState current_state);
     
     DeviceAddress ADDRESS_TA = { 0x28, 0x8C, 0x4B, 0xAD, 0x27, 0x19, 0x01, 0xCA }; // Ta
     DeviceAddress ADDRESS_TS = { 0x28, 0x78, 0x98, 0x8B, 0x0B, 0x00, 0x00, 0x22 }; // Ts

@@ -15,15 +15,6 @@
 // temperature measures
 typedef struct { float ta; float ts; float tc; float ti; float avg_ts; } data_s;
 
-
-enum SystemState {
-    IDLE,
-    STAGE1,
-    STAGE2,
-    STAGE3,
-    ERROR
-};
-
 enum SensorProbes{TA_TYPE, TS_TYPE, TC_TYPE};
 
 //---- Function declaration ----/////////////////////////////////////////////////////////////////////////////

@@ -338,3 +338,20 @@ void Controller::WiFiLoop() {
     return;
   }
 }
+
+StageState Controller::getLastState() {
+  StageState last_state;
+  preferences.begin("recovery", false);
+  last_state.stage = (SystemState)preferences.getUInt("stage", IDLE);
+  last_state.step = preferences.getUInt("step", 0);
+  preferences.end();
+
+  return last_state;
+}
+
+void Controller::saveLastState(StageState current_state) {
+  preferences.begin("recovery", false);
+  preferences.putUInt("stage", current_state.stage);
+  preferences.putUInt("step", current_state.step);
+  preferences.end();
+}

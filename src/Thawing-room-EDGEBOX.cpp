@@ -89,7 +89,8 @@ float buffer[BUFFER_SIZE] = {};  // buffer to store the values
 uint8_t buffer_len = 0;
 uint8_t buffer_index = 0;  // buffer index
 
-SystemState currentState = IDLE;
+// SystemState currentState = IDLE;
+StageState currentState = {IDLE, 0};
 
 MqttClient mqtt;
 Controller controller;
@@ -131,6 +132,9 @@ void setup() {
   controller.connectToWiFi(true, true, true);
   controller.setUpRTC();
 
+  StageState last_state = controller.getLastState();
+  if (last_state.stage != IDLE) currentState = last_state;
+
   mqtt.connect(IP_ADDRESS, PORT, MQTT_ID, USERNAME, MQTT_PASSWORD);
   mqtt.setCallback(callback);
   // mqtt.exampleCall();
@@ -166,7 +170,7 @@ void loop() {
   if (hasIntervalPassed(ts_avg_timer, AVG_RESOLUTION)) getTsAvg();
   if (hasIntervalPassed(get_temp_timer, TIME_ACQ_DELAY)) publishTemperatures(current_date);  
   if (hasIntervalPassed(A_B_timer, 10000)) aknowledgementRoutine();
-  if (currentState == STAGE2 && !STOP ) publishPID();  // PID works only on STAGE 2
+  if (currentState.stage == STAGE2 && !STOP ) publishPID();  // PID works only on STAGE 2
 
   const bool start_stage2 = shouldStage2Start(current_date);
   const bool start_stage3 = shouldStage3Start(current_date);
@@ -201,7 +205,7 @@ void loop() {
 
   //---- STAGE 1 ----////////////////////////////////////////////////////////////////////////////
   if (START1 && !stage2_rtc_set && !STOP) {
-    if (currentState != STAGE1) {
+    if (currentState.stage != STAGE1) {
       controller.writeDigitalOutput(STAGE_1_IO, HIGH);  // Turn On the LED of Stage 1
       logger.println("Stage 1 Started");
       setStage(STAGE1);
@@ -212,7 +216,7 @@ void loop() {
 
   //---- STAGE 2 ----////////////////////////////////////////////////////////////////////////////
   if (stage2_rtc_set && !stage3_started && !STOP) {
-    if (currentState != STAGE2) {
+    if (currentState.stage != STAGE2) {
       controller.writeDigitalOutput(STAGE_2_IO, HIGH);  // Turn On the LED of Stage 2
 
       logger.println("Stage 2 Started");
@@ -254,7 +258,7 @@ void loop() {
 
   if (stage3_started && stage2_started && !STOP) {
     // State of Stage 3 turned to 1
-    if ( currentState != STAGE3) {
+    if ( currentState.stage != STAGE3) {
       controller.writeDigitalOutput(STAGE_3_IO, HIGH);  // Turn ON the LED of Stage 3
 
       logger.println("Stage 3 Started");
@@ -701,8 +705,11 @@ void sendTemperaturaAlert(float temp, String sensor){
 }
 
 void setStage(SystemState Stage) {
-  currentState = Stage;
+  currentState.stage = Stage;
+  currentState.step = 0;
   mqtt.publishData(STAGE, Stage);
+
+  controller.saveLastState(currentState);
 }
 
 bool noButtonPressed(){
@@ -725,7 +732,7 @@ void publishStateChange(const char* topic, int state, const String& message) {
 }
 
 void aknowledgementRoutine(){
-  mqtt.publishData(STAGE, currentState);
+  mqtt.publishData(STAGE, currentState.stage);
   mqtt.publishData(m_F1, fan_1);
   // mqtt.publishData(m_F2, fan_2);
   mqtt.publishData(m_S1, sprinkler_1);
@@ -796,7 +803,7 @@ void publishTemperatures(DateTime &current_date) {
 
     // for debug purpose
     logger.println("Average: " + String(temp_data.avg_ts));
-    logger.println("Stage: " + String(currentState));
+    logger.println("Stage: " + String(currentState.stage));
     // logger.println(String(controller.readDigitalInput(DI0)));
     logger.println("Ts: " + String(TS));
     logger.println("TC: " + String(TC));
