@@ -131,6 +131,7 @@ void setup() {
   controller.setUpRTC();
 
   StageState last_state = controller.getLastState();
+  logger.println("Last state: " + String(last_state.stage) + " " + String(last_state.step));
   if (last_state.stage != IDLE) currentState = last_state;
 
   mqtt.connect(IP_ADDRESS, PORT, MQTT_ID, USERNAME, MQTT_PASSWORD);
