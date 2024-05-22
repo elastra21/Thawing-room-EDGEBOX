@@ -126,8 +126,6 @@ void setup() {
   controller.runConfigFile(SSID, PASS, HOST_NAME, IP_ADDRESS, &PORT, MQTT_ID, USERNAME, MQTT_PASSWORD, PREFIX_TOPIC);
   controller.setUpDefaultParameters(stage1_params, stage2_params, stage3_params, room, temp_set);
 
-  setStage(IDLE);
-
   controller.setUpWiFi(SSID, PASS, HOST_NAME);
   controller.connectToWiFi(true, true, true);
   controller.setUpRTC();
