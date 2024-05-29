@@ -25,7 +25,6 @@ void stopRoutine();
 void handleStage1();
 void handleStage2();
 void handleStage3();
-void handleInputs();
 bool noButtonPressed();
 void updateTemperature();
 void aknowledgementRoutine();
@@ -33,6 +32,7 @@ void setStage(SystemState Stage);
 bool shouldStage2Start(DateTime &current_date);
 bool shouldStage3Start(DateTime &current_date);
 void publishTemperatures(DateTime &current_date);
+void handleInputs(SystemState stage_to_init = IDLE);
 void sendTemperaturaAlert(float temp, String sensor);
 void callback(char *topic, byte *payload, unsigned int len);  //callback function for mqtt, see definition after loop
 void publishStateChange(const char* topic, int state, const String& message);

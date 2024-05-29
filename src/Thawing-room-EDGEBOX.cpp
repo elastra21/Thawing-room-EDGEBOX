@@ -132,7 +132,10 @@ void setup() {
 
   StageState last_state = controller.getLastState();
   logger.println("Last state: " + String(last_state.stage) + " " + String(last_state.step));
-  if (last_state.stage != IDLE) currentState = last_state;
+  if (last_state.stage != IDLE) {
+    currentState = last_state;
+    handleInputs(currentState.stage);
+  }
 
   mqtt.connect(IP_ADDRESS, PORT, MQTT_ID, USERNAME, MQTT_PASSWORD);
   mqtt.setCallback(callback);
@@ -287,10 +290,11 @@ bool shouldStage3Start(DateTime &current_date) {
   return isReadyForStage3 && isStage3NotStarted && isStage2Started;
 }
 
-void handleInputs() {
+void handleInputs(SystemState stage_to_init) {
+
   //---- START, DELAYED, STOP Button pressed ----////////////////////////////////////////////////
   // delayed start push button or digital button pressed
-  if (controller.readDigitalInput(DLY_S_IO) || remote_d_start) {
+  if (controller.readDigitalInput(DLY_S_IO) || remote_d_start || stage_to_init == STAGE1) {
     START1 = true;
     logger.println("Delayed Start Pressed");
     remote_d_start = false;
@@ -303,7 +307,7 @@ void handleInputs() {
   }
 
   // start push button or digital button pressed
-  if (controller.readDigitalInput(START_IO) || remote_start) {
+  if (controller.readDigitalInput(START_IO) || remote_start || stage_to_init == STAGE2) {
     START2 = true;
     logger.println("Start Pressed");
     remote_start = false;
@@ -320,6 +324,9 @@ void handleInputs() {
     logger.println("Stop Pressed");
     remote_stop = false;
   }
+
+
+
 }
 
 void handleStage1() {
